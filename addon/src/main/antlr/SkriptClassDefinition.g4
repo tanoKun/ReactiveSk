@@ -1,77 +1,97 @@
 grammar SkriptClassDefinition;
 
+// INDENT/DEDENT をパーサーが認識する仮想トークンとして定義
+tokens { INDENT, DEDENT }
+
+/*------------------------------------------------------------------
+ * Parser Rules (以前の正しいバージョン)
+ *------------------------------------------------------------------*/
+
 program
-    : classDef* EOF
+    // ★★★ トップレベルの要素が0個以上繰り返される、と定義 ★★★
+    : topLevelElement* EOF
+    ;
+
+topLevelElement
+    // ★★★ トップレベルには、クラス定義か、それ以外の行が存在する ★★★
+    : classDef
+    | otherLine
     ;
 
 classDef
-    : CLASS Identifier (LPAREN classArgs? RPAREN)? classBody
+    : CLASS name=Identifier (LPAREN classArgs? RPAREN)? COLON NEWLINE
+      INDENT
+      classBody
+      DEDENT
     ;
 
-classArgs
-    : fieldDef (COMMA fieldDef)*
+otherLine
+    // `~CLASS` は「CLASSトークンではない、任意のトークン」という意味
+    // NEWLINEまたはEOFが来るまで、行のトークンをすべて消費する
+    : ~CLASS ( ~NEWLINE )* NEWLINE?
     ;
 
-arg
-    : Identifier COLON type
-    ;
+classArgs: fieldDef (COMMA fieldDef)*;
 
-type
-    : Identifier
-    | ARRAY OF Identifier
-    ;
+arg: name=Identifier COLON type;
 
-classBody
-    : LBRACE classMember* RBRACE
-    ;
+type:
+    typeName=Identifier
+    | ARRAY OF arrayType=Identifier; // 'array of' はパーサーで解釈
 
-classMember
-    : initBlock
-    | functionDef
-    ;
+classBody: classMember*;
 
-fieldDef
-    : accessModifiers? (VAL | VAR) arg
-    ;
+classMember: fieldBlock | initBlock | functionDef;
 
-initBlock
-    : INIT LBRACE rawContent* RBRACE
-    ;
+fieldBlock:
+    FIELD COLON NEWLINE
+    INDENT fieldDef+ DEDENT;
 
-functionDef
-    : accessModifiers? FUNCTION Identifier LPAREN funcArgs? RPAREN (COLON type)? LBRACE rawContent* RBRACE
-    ;
+fieldDef: accessModifiers? mutability=(VAL | VAR) arg NEWLINE?;
 
-funcArgs
-    : arg (COMMA arg)*
-    ;
+initBlock:
+    INIT COLON NEWLINE
+    INDENT rawBody DEDENT;
 
-rawContent
-    : LBRACE rawContent* RBRACE
-    | ~(LBRACE | RBRACE)
-    ;
+functionDef:
+    accessModifiers? FUNCTION name=Identifier LPAREN funcArgs? RPAREN (DCOLON returnType=type)? COLON NEWLINE
+    INDENT rawBody DEDENT;
 
-accessModifiers
-    : PRIVATE
-    ;
+funcArgs: arg (COMMA arg)*;
 
+rawBody: (~DEDENT)+;
 
-LBRACE: '{';
-RBRACE: '}';
+accessModifiers: PRIVATE;
+
+/*------------------------------------------------------------------
+ * Lexer Rules (以前の正しいバージョン)
+ *------------------------------------------------------------------*/
 CLASS: 'class';
+FIELD: 'field';
 FUNCTION: 'function';
 INIT: 'init';
 VAL: 'val';
 VAR: 'var';
-ARRAY: 'array';
+ARRAY: 'array'; // 'array' と 'of' は別々のトークン
 OF: 'of';
 PRIVATE: 'private';
+
 Identifier: [a-zA-Z_] [a-zA-Z_0-9]*;
 LPAREN: '(';
 RPAREN: ')';
 COLON: ':';
+DCOLON: '::';
 COMMA: ',';
 STRING: '"' (~["\r\n])*? '"';
-NEWLINE: ( '\r'? '\n' | '\r' )+ -> skip;
+
+COMMENT
+    : '#' ~[\r\n]* -> skip
+    ;
+
+// NEWLINE はパーサーに渡す必要がある
+NEWLINE: ( '\r'? '\n' | '\r' )+;
+
+// WS (空白) はカスタムレキサーが手動で処理するため、ここではスキップする
 WS: [ \t]+ -> skip;
-ANY_CHAR: . ;
+
+ANY_CHAR: .;

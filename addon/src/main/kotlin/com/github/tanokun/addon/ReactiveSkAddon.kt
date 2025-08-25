@@ -2,14 +2,13 @@ package com.github.tanokun.addon
 
 import ch.njol.skript.Skript
 import ch.njol.skript.SkriptAddon
-import ch.njol.skript.classes.Changer
 import ch.njol.skript.classes.ClassInfo
 import ch.njol.skript.classes.Parser
 import ch.njol.skript.lang.ParseContext
 import ch.njol.skript.registrations.Classes
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.github.tanokun.addon.clazz.definition.Identifier
-import com.github.tanokun.addon.clazz.loader.StaticClassDefinitionLoader
+import com.github.tanokun.addon.clazz.loader.DynamicClassLoader
 import com.github.tanokun.addon.instance.InstanceProperty
 import com.github.tanokun.addon.instance.serializer.InstancePropertySerializer
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -27,6 +26,8 @@ class ReactiveSkAddon : JavaPlugin() {
     lateinit var addon: SkriptAddon
         private set
 
+    private val classLoader = DynamicClassLoader()
+
     override fun onEnable() {
         val exceptionHandler = CoroutineExceptionHandler { context, throwable ->
             logger.severe(throwable.stackTraceToString())
@@ -34,7 +35,7 @@ class ReactiveSkAddon : JavaPlugin() {
         job = SupervisorJob()
         coroutineScope = CoroutineScope(minecraftDispatcher + exceptionHandler + job)
 
-        StaticClassDefinitionLoader.load(folder = Skript.getInstance().dataFolder)
+        classLoader.loadAllClassesFrom(folder = Skript.getInstance().dataFolder)
 
         addon = Skript.registerAddon(this)
         addon.loadClasses("com.github.tanokun.addon")

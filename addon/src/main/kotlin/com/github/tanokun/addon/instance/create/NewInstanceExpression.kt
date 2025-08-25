@@ -3,21 +3,18 @@ package com.github.tanokun.addon.instance.create
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.ExpressionList
-import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.clazz.ClassRegistry
 import com.github.tanokun.addon.clazz.definition.Identifier
-import com.github.tanokun.addon.clazz.loader.StaticClassDefinitionLoader
 import com.github.tanokun.addon.instance.AnyInstance
-import com.sun.org.apache.xml.internal.serializer.utils.Utils.messages
 import org.bukkit.event.Event
 
 class NewInstanceExpression: SimpleExpression<AnyInstance>() {
     companion object {
-        init {
+/*        init {
             val classes = StaticClassDefinitionLoader.loadedClasses
                 .map { it.simpleName }
 
@@ -27,7 +24,7 @@ class NewInstanceExpression: SimpleExpression<AnyInstance>() {
                 ExpressionType.SIMPLE,
                 "create (${classes.reduceOrNull { acc, className -> "$acc|$className" }}) [with %objects%]"
             )
-        }
+        }*/
     }
 
     private lateinit var className: Identifier

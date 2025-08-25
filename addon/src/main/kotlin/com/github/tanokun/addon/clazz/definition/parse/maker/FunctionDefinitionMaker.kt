@@ -1,35 +1,19 @@
-package com.github.tanokun.addon.clazz.definition.parse.function.register
+package com.github.tanokun.addon.clazz.definition.parse.maker
 
-import ch.njol.skript.ScriptLoader
 import ch.njol.skript.Skript
-import ch.njol.skript.classes.ClassInfo
 import ch.njol.skript.config.SectionNode
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.Section
 import ch.njol.skript.lang.SkriptParser
-import ch.njol.skript.lang.Trigger
 import ch.njol.skript.lang.TriggerItem
-import ch.njol.skript.log.ErrorQuality
-import ch.njol.skript.registrations.Classes
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.clazz.definition.function.FunctionDefinition
-import com.github.tanokun.addon.clazz.definition.function.ParameterDefinition
-import com.github.tanokun.addon.clazz.definition.parse.currentlyCombinator
-import com.github.tanokun.addon.clazz.definition.parse.function.FunctionParser
-import com.github.tanokun.addon.clazz.definition.parse.function.ParseFunctionResult
-import com.github.tanokun.addon.instance.call.FunctionReturnEffect
-import com.github.tanokun.addon.maker.ClassDefinitionBukkitEvent
-import com.google.common.reflect.Parameter
-import jdk.nashorn.internal.codegen.CompilerConstants.className
-import jdk.nashorn.internal.objects.NativeFunction.function
-import org.bukkit.WorldCreator.name
 import org.bukkit.event.Event
 
-class FunctionDefinitionRegister : Section() {
+class FunctionDefinitionMaker : Section() {
 
     companion object {
         init {
-            Skript.registerSection(FunctionDefinitionRegister::class.java, "function <.+>")
+            Skript.registerSection(FunctionDefinitionMaker::class.java, "function <.+>")
         }
     }
 
@@ -41,7 +25,8 @@ class FunctionDefinitionRegister : Section() {
         sectionNode: SectionNode,
         triggerItems: List<TriggerItem>,
     ): Boolean {
-        val currentEvents = parser.currentEvents
+        return true
+/*        val currentEvents = parser.currentEvents
         if (currentEvents == null || currentEvents.none { it == ClassDefinitionBukkitEvent::class.java }) {
             Skript.error("'function' 定義は 'class' ブロックの内部でのみ使用できます。", ErrorQuality.SEMANTIC_ERROR)
             return false
@@ -86,16 +71,16 @@ class FunctionDefinitionRegister : Section() {
 
         function?.let { currentlyCombinator.addFunction(it) }
 
-        return function != null
+        return function != null*/
     }
 
-    fun verifyParameterTypes(function: FunctionDefinition, className: String): List<Boolean> {
+/*    fun verifyParameterTypes(function: FunctionDefinition, className: String): List<Boolean> {
         val parameters = function.parameters
 
         val result = parameters.map {
-            val classInfo = Classes.getClassInfoNoError(it.typeName.lowercase())
+            val classInfo = Classes.getClassInfoNoError(it.type.c.simpleName.lowercase())
             if (classInfo == null) {
-                Skript.error("クラス '$className' の関数パラメータの '${function.name}' の型 '${it.typeName}' は存在しません。", ErrorQuality.SEMANTIC_ERROR)
+                Skript.error("クラス '$className' の関数パラメータの '${function.name}' の型 '${it.type.c.simpleName}' は存在しません。", ErrorQuality.SEMANTIC_ERROR)
                 return@map true
             }
 
@@ -114,7 +99,7 @@ class FunctionDefinitionRegister : Section() {
         }
 
         return classInfo
-    }
+    }*/
 
     override fun walk(e: Event?): TriggerItem? { return null }
 

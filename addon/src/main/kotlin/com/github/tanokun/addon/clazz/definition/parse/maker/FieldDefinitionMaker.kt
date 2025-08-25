@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.clazz.definition.parse.field.register
+package com.github.tanokun.addon.clazz.definition.parse.maker
 
 import ch.njol.skript.Skript
 import ch.njol.skript.config.SectionNode
@@ -7,18 +7,14 @@ import ch.njol.skript.lang.Section
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.TriggerItem
 import ch.njol.skript.log.ErrorQuality
-import ch.njol.skript.registrations.Classes
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.clazz.definition.parse.currentlyCombinator
-import com.github.tanokun.addon.clazz.definition.parse.field.FieldDefinitionParser
-import com.github.tanokun.addon.clazz.definition.parse.field.ParseFieldResult
 import com.github.tanokun.addon.maker.ClassDefinitionBukkitEvent
 import org.bukkit.event.Event
 
-class FieldDefinitionRegister: Section() {
+class FieldDefinitionMaker: Section() {
     companion object {
         init {
-            Skript.registerSection(FieldDefinitionRegister::class.java, "field")
+            Skript.registerSection(FieldDefinitionMaker::class.java, "field")
         }
     }
 
@@ -36,16 +32,16 @@ class FieldDefinitionRegister: Section() {
             return false
         }
 
-        val currentlyCombinator = currentlyCombinator ?: return false
+/*        val currentlyCombinator = currentlyCombinator ?: return false
         val className = currentlyCombinator.className
 
         val fieldParser = FieldDefinitionParser(sectionNode)
         val fieldDefinitions = fieldParser.parseField().mapNotNull { result ->
             when (result) {
                 is ParseFieldResult.Success -> {
-                    val classInfo = Classes.getClassInfoNoError(result.unidentifiedClassDefinition.typeName.lowercase())
+                    val classInfo = Classes.getClassInfoNoError(result.unidentifiedClassDefinition.type.c.simpleName.lowercase())
                     if (classInfo == null) {
-                        Skript.error("クラス '$className' のフィールド '${result.unidentifiedClassDefinition.fieldName}' の型 '${result.unidentifiedClassDefinition.typeName}' は存在しません。", ErrorQuality.SEMANTIC_ERROR)
+                        Skript.error("クラス '$className' のフィールド '${result.unidentifiedClassDefinition.fieldName}' の型 '${result.unidentifiedClassDefinition.type.c.simpleName}' は存在しません。", ErrorQuality.SEMANTIC_ERROR)
                         null
                     }
 
@@ -58,7 +54,7 @@ class FieldDefinitionRegister: Section() {
             }
         }
 
-        currentlyCombinator.fields = fieldDefinitions
+        currentlyCombinator.fields = fieldDefinitions*/
 
         return true
     }

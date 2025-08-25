@@ -12,6 +12,7 @@ class InstancePropertySerializer: Serializer<InstanceProperty>() {
 
         fields.putObject("propertyName", target.propertyName)
         fields.putObject("parentClassName", target.parentClass)
+        fields.putObject("isArray", target.isArray)
         fields.putObject("value", target.value)
 
         return fields
@@ -21,6 +22,7 @@ class InstancePropertySerializer: Serializer<InstanceProperty>() {
     override fun deserialize(any: InstanceProperty, fields: Fields) {
         any.propertyName = fields.getObject("propertyName").toString()
         any.parentClass = fields.getObject("parentClassName").toString()
+        any.isArray = fields.getObject("isArray") as Boolean
         runBlocking { any.emit(fields.getObject("value")) }
     }
 

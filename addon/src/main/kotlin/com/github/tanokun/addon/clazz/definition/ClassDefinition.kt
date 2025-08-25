@@ -10,20 +10,20 @@ import java.lang.invoke.MethodHandles
 
 data class ClassDefinition(
     val className: Identifier,
-    val classInfo: ClassInfo<out AnyInstance>,
     val fields: List<FieldDefinition>,
     val functions: List<FunctionDefinition>,
 ) {
 
     fun newInstance(arguments: Collection<Any>): AnyInstance {
-        if (fields.size != arguments.size) {
+        TODO()
+/*        if (fields.size != arguments.size) {
             throw IllegalArgumentException("引数の数が一致しません: expected=${fields.size}, actual=${arguments.size}")
         }
 
         return classInfo.c.newInstance().apply {
             this.className = this@ClassDefinition.className.identifier
             this.properties = arguments.mapIndexed { index, value -> fields[index].newInstance(className, value) }
-        }
+        }*/
     }
 
     fun getFunction(funcName: Identifier) = functions.firstOrNull { it.name == funcName }

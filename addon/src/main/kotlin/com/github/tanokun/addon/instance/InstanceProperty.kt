@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.subscribe
 data class InstanceProperty(
     var propertyName: String = "",
     var parentClass: String = "",
+    var isArray: Boolean = false,
     private var _value: Any? = null
 ) {
 
