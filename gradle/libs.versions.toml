@@ -1,0 +1,52 @@
+# Version catalog is a central place for you to declare and version dependencies
+# https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
+# https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
+
+[versions]
+kotlin = "2.2.0"
+kotlinxSerializationJSON = "1.9.0"
+kotlinxCoroutines = "1.10.2"
+kotest = "6.0.0"
+mockk = "1.14.5"
+koin = "4.1.0"
+koin-annotations = "2.1.0"
+ksp = "2.2.0-2.0.2"
+mccoroutine = "2.22.0"
+spigot = "1.12.2-R0.1-SNAPSHOT"
+skript = "2.6.3"
+antlr = "4.13.1"
+antlrKotlin = "1.0.3"
+bytebuddy = "1.14.9"
+
+[libraries]
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJSON" }
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
+kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-annotations" }
+koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-annotations" }
+mccoroutine-bukkit-api = { module = "com.github.shynixn.mccoroutine:mccoroutine-bukkit-api", version.ref = "mccoroutine" }
+mccoroutine-bukkit-core = { module = "com.github.shynixn.mccoroutine:mccoroutine-bukkit-core", version.ref = "mccoroutine" }
+spigot-api = { group = "org.spigotmc", name = "spigot-api", version.ref = "spigot" }
+skript-api = { group = "com.github.SkriptLang", name = "Skript", version.ref = "skript" }
+antlr-tool = { group = "org.antlr", name = "antlr4", version.ref = "antlr" }
+antlr-kotlin-runtime = { group = "com.strumenta", name = "antlr-kotlin-runtime-jvm", version.ref = "antlrKotlin" }
+bytebuddy = { module = "net.bytebuddy:byte-buddy", version.ref = "bytebuddy" }
+
+[bundles]
+kotest = ["kotest-assertions-core", "kotest-runner-junit5", "kotest-framework-engine", "kotest-property"]
+koin = ["koin-annotations", "koin-core", "koin-ksp-compiler"]
+mccoroutine = ["mccoroutine-bukkit-api", "mccoroutine-bukkit-core"]
+
+
+[plugins]
+kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+shadow = { id = "com.gradleup.shadow", version = "9.0.0-rc1" }
+bukkit-yaml = { id = "net.minecrell.plugin-yml.bukkit", version = "0.6.0" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+antlr = { id = "antlr" }
