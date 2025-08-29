@@ -1,70 +1,133 @@
 grammar SkriptClassDefinition;
 
-// INDENT/DEDENT をパーサーが認識する仮想トークンとして定義
 tokens { INDENT, DEDENT }
 
 /*------------------------------------------------------------------
- * Parser Rules (以前の正しいバージョン)
+ * Parser Rules
  *------------------------------------------------------------------*/
 
 program
-    // ★★★ トップレベルの要素が0個以上繰り返される、と定義 ★★★
-    : topLevelElement* EOF
+    : (classDef | skipTopLevel)* skipTailWithoutNewline? EOF
     ;
 
-topLevelElement
-    // ★★★ トップレベルには、クラス定義か、それ以外の行が存在する ★★★
-    : classDef
-    | otherLine
+// トップレベルは class 以外をスキップ(行＋直後のインデントブロック丸ごと)
+skipTopLevel
+    : notClassHeader block?
+    ;
+
+// 「CLASS で始まらない」1行を NEWLINE まで消費(EOF はここでは消費しない)
+notClassHeader
+    : { _input.LA(1) != CLASS }? (~NEWLINE)* NEWLINE
+    ;
+
+// ファイル末尾が改行なしで「class 以外」で終わるケースをスキップ
+skipTailWithoutNewline
+    : { _input.LA(1) != CLASS }? (~NEWLINE)+
     ;
 
 classDef
-    : CLASS name=Identifier (LPAREN classArgs? RPAREN)? COLON NEWLINE
-      INDENT
-      classBody
-      DEDENT
+    : CLASS name=Identifier
+      (LPAREN2 constructorParams=constructorParamList? RPAREN2)?
+      COLON
+      (NEWLINE
+       INDENT
+       classBody
+       DEDENT)?
     ;
 
-otherLine
-    // `~CLASS` は「CLASSトークンではない、任意のトークン」という意味
-    // NEWLINEまたはEOFが来るまで、行のトークンをすべて消費する
-    : ~CLASS ( ~NEWLINE )* NEWLINE?
+constructorParamList
+    : constructorParam (COMMA constructorParam)*
     ;
 
-classArgs: fieldDef (COMMA fieldDef)*;
+constructorParam
+    : (accessModifiers? mutability=(VAL | VAR))? arg
+    ;
 
-arg: name=Identifier COLON type;
+throwsList
+    : throwsParam (COMMA throwsParam)*
+    ;
 
-type:
-    typeName=Identifier
-    | ARRAY OF arrayType=Identifier; // 'array of' はパーサーで解釈
+throwsParam
+    : throw=Identifier*
+    ;
 
-classBody: classMember*;
+arg
+    : name=Identifier COLON type
+    ;
 
-classMember: fieldBlock | initBlock | functionDef;
+type
+    : typeName=Identifier
+    | ARRAY OF arrayType=Identifier
+    ;
 
-fieldBlock:
-    FIELD COLON NEWLINE
-    INDENT fieldDef+ DEDENT;
+classBody
+    : classMember*
+    ;
 
-fieldDef: accessModifiers? mutability=(VAL | VAR) arg NEWLINE?;
+classMember
+    : fieldSection
+    | initSection
+    | functionDef
+    ;
 
-initBlock:
-    INIT COLON NEWLINE
-    INDENT rawBody DEDENT;
+// field セクションは空許容、ブロック自体も任意
+fieldSection
+    : FIELD COLON NEWLINE
+      (INDENT fieldDef* DEDENT)?
+    ;
 
-functionDef:
-    accessModifiers? FUNCTION name=Identifier LPAREN funcArgs? RPAREN (DCOLON returnType=type)? COLON NEWLINE
-    INDENT rawBody DEDENT;
+fieldDef
+    : accessModifiers? mutability=(VAL | VAR) arg NEWLINE
+    ;
 
-funcArgs: arg (COMMA arg)*;
+// init はヘッダのみ解析。本体は任意のブロック(空も可)をスキップ
+initSection
+    : INIT (THROWS LPAREN2 throwsList RPAREN2)? COLON NEWLINE
+      block?
+    ;
 
-rawBody: (~DEDENT)+;
+// function はヘッダ解析(戻り型「: / ::」どちらも可、throws 可)
+// 本体は任意のブロック(空も可)をスキップ
+functionDef
+    : accessModifiers?
+      FUNCTION name=Identifier
+      LPAREN funcArgs? RPAREN
+      functionReturn?
+      (THROWS LPAREN2 throwsList RPAREN2)?
+      COLON NEWLINE
+      block?
+    ;
 
-accessModifiers: PRIVATE;
+functionReturn
+    : DCOLON returnType=type
+    | COLON  returnType=type
+    ;
+
+funcArgs
+    : arg (COMMA arg)*
+    ;
+
+// 汎用ブロック(入れ子対応)。空ブロックも INDENT DEDENT で表現
+block
+    : INDENT blockItems DEDENT
+    | INDENT DEDENT
+    ;
+
+blockItems
+    : (block | rawToken)+
+    ;
+
+// INDENT/DEDENT 以外の任意トークン
+rawToken
+    : ~(INDENT | DEDENT)
+    ;
+
+accessModifiers
+    : PRIVATE
+    ;
 
 /*------------------------------------------------------------------
- * Lexer Rules (以前の正しいバージョン)
+ * Lexer Rules
  *------------------------------------------------------------------*/
 CLASS: 'class';
 FIELD: 'field';
@@ -72,26 +135,28 @@ FUNCTION: 'function';
 INIT: 'init';
 VAL: 'val';
 VAR: 'var';
-ARRAY: 'array'; // 'array' と 'of' は別々のトークン
+ARRAY: 'array';
 OF: 'of';
 PRIVATE: 'private';
+THROWS: 'throws';
 
 Identifier: [a-zA-Z_] [a-zA-Z_0-9]*;
 LPAREN: '(';
 RPAREN: ')';
+LPAREN2: '[';
+RPAREN2: ']';
 COLON: ':';
 DCOLON: '::';
 COMMA: ',';
 STRING: '"' (~["\r\n])*? '"';
 
-COMMENT
-    : '#' ~[\r\n]* -> skip
-    ;
+COMMENT: '#' ~[\r\n]* -> skip;
 
-// NEWLINE はパーサーに渡す必要がある
+// NEWLINE はインデント処理に必要
 NEWLINE: ( '\r'? '\n' | '\r' )+;
 
-// WS (空白) はカスタムレキサーが手動で処理するため、ここではスキップする
+// スペース/タブはスキップ(INDENT/DEDENT はカスタムレキサーで生成)
 WS: [ \t]+ -> skip;
 
+// その他の単一文字もトークン化
 ANY_CHAR: .;

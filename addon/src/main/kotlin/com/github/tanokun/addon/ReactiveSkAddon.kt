@@ -5,28 +5,40 @@ import ch.njol.skript.SkriptAddon
 import ch.njol.skript.classes.ClassInfo
 import ch.njol.skript.classes.Parser
 import ch.njol.skript.lang.ParseContext
+import ch.njol.skript.lang.util.SimpleLiteral
 import ch.njol.skript.registrations.Classes
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
-import com.github.tanokun.addon.clazz.definition.Identifier
-import com.github.tanokun.addon.clazz.loader.DynamicClassLoader
-import com.github.tanokun.addon.instance.InstanceProperty
-import com.github.tanokun.addon.instance.serializer.InstancePropertySerializer
+import com.github.tanokun.addon.definition.Identifier
+import com.github.tanokun.addon.intermediate.generator.ByteBuddyGenerator
+import com.github.tanokun.addon.intermediate.DynamicClassDefinitionLoader
+import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
+import com.github.tanokun.addon.runtime.skript.serializer.DynamicInstanceSerializer
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import org.bukkit.plugin.java.JavaPlugin
-import kotlin.jvm.java
 
 lateinit var coroutineScope: CoroutineScope private set
 
 lateinit var job: Job private set
 
+val dynamicClassDefinitionLoader = DynamicClassDefinitionLoader()
+val dynamicJavaClassLoader = DynamicJavaClassLoader(
+    ::classResolver,
+    ByteBuddyGenerator(),
+    dynamicClassDefinitionLoader
+)
+
+private fun classResolver(className: Identifier): Class<*>? {
+    return Classes.getClassInfoNoError(className.identifier.lowercase())?.c
+}
+
 class ReactiveSkAddon : JavaPlugin() {
     lateinit var addon: SkriptAddon
         private set
 
-    private val classLoader = DynamicClassLoader()
+    private val identifier = "[_a-zA-Z$][a-zA-Z0-9_$]*".toRegex()
 
     override fun onEnable() {
         val exceptionHandler = CoroutineExceptionHandler { context, throwable ->
@@ -35,24 +47,12 @@ class ReactiveSkAddon : JavaPlugin() {
         job = SupervisorJob()
         coroutineScope = CoroutineScope(minecraftDispatcher + exceptionHandler + job)
 
-        classLoader.loadAllClassesFrom(folder = Skript.getInstance().dataFolder)
-
-        addon = Skript.registerAddon(this)
-        addon.loadClasses("com.github.tanokun.addon")
-
-        Classes.registerClass(
-            ClassInfo(InstanceProperty::class.java, "instanceproperty")
-                .serializer(InstancePropertySerializer())
-        )
-
         Classes.registerClass(
             ClassInfo(Identifier::class.java, "identifier")
                 .user("([_a-zA-Z$][a-zA-Z0-9_$]*)")
                 .parser(object : Parser<Identifier>() {
                     override fun parse(s: String, context: ParseContext): Identifier? {
-                        if (s.matches("[_a-zA-Z$][a-zA-Z0-9_$]*".toRegex())) {
-                            return Identifier(s)
-                        }
+                        if (s.matches(identifier)) return Identifier(s)
 
                         return null
                     }
@@ -65,7 +65,29 @@ class ReactiveSkAddon : JavaPlugin() {
                     val variableNamePattern: String
                         get() = "[_a-zA-Z$][a-zA-Z0-9_$]*"
                 })
+                .defaultExpression(SimpleLiteral(Identifier.empty, true))
         )
+
+        Classes.registerClass(ClassInfo(Void.TYPE, "void"))
+        Classes.registerClass(ClassInfo(ArrayList::class.java, "array"))
+
+        dynamicClassDefinitionLoader.loadAllClassesFrom(folder = Skript.getInstance().dataFolder)
+        dynamicClassDefinitionLoader.getClassNames().forEach {
+            try {
+                val clazz = dynamicJavaClassLoader.getDynamicClassOrGenerate(it)
+                Classes.registerClass(
+                    ClassInfo(clazz, it.identifier.lowercase())
+                        .name(it.identifier)
+                        .user(it.identifier, it.identifier.lowercase())
+                        .serializer(DynamicInstanceSerializer())
+                )
+            }catch (e: Throwable) {
+                logger.warning("Failed to load class '${it.identifier}' -> ${e.message}")
+            }
+        }
+
+        addon = Skript.registerAddon(this)
+        addon.loadClasses("com.github.tanokun.addon")
 
         logger.info("ReactiveSk Addon has been enabled successfully!")
     }

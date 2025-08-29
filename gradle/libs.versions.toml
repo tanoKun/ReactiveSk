@@ -16,7 +16,7 @@ spigot = "1.12.2-R0.1-SNAPSHOT"
 skript = "2.6.3"
 antlr = "4.13.1"
 antlrKotlin = "1.0.3"
-bytebuddy = "1.14.9"
+bytebuddy = "1.17.0"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }

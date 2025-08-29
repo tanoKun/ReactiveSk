@@ -1,46 +1,76 @@
 package com.github.tanokun.addon.clazz.definition.parse
 
-import com.github.tanokun.addon.clazz.definition.Identifier
-import com.github.tanokun.addon.clazz.loader.DynamicClassLoader
+import com.github.tanokun.addon.definition.Identifier
+import com.github.tanokun.addon.intermediate.generator.ByteBuddyGenerator
+import com.github.tanokun.addon.intermediate.DynamicClassDefinitionLoader
+import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
+import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
+import io.mockk.mockk
 import java.io.File
+import kotlin.jvm.java
 import kotlin.test.Test
 
 class DynamicClassParserTest {
+    val dynamicClassDefinitionLoader = DynamicClassDefinitionLoader()
+    val classLoader = DynamicJavaClassLoader(
+        ::resolveWellKnownType,
+        ByteBuddyGenerator(),
+        dynamicClassDefinitionLoader
+    )
+
     @Test
     fun test() {
         val scriptDir = File("test-scripts")
         scriptDir.mkdirs()
         File(scriptDir, "Character.sk").writeText("""
-        class Character:
-            field:
-                val name: string
+        class Character[val name: string]:
     """.trimIndent())
         File(scriptDir, "Player.sk").writeText("""
-        class Player:
-            field:
-                val character_data: Character
-                val health: long
-
-            function test(aa: string):: string:
-                send "%{_aaa::*}%" to console
+class Person[val name: PersonName, val age: PersonAge, val job: PersonJob]:
+class PersonName[val name: string]:    
+class PersonAge[val age: long]:
+class PersonJob[val jobName: string]:
+class Test[private val test: array of string, test2: string, var test3: string]:
+    field:
+        var test4: string
+        val test6: string
+    init throws [ERROR]:
+        send "%{_test}%" to console
+        
+    function test(testParam: string):: string throws [ERROR]:
+        send "%{_test}%" to console
     """.trimIndent())
 
-        val classLoader = DynamicClassLoader()
+        dynamicClassDefinitionLoader.loadAllClassesFrom(scriptDir)
 
-        classLoader.loadAllClassesFrom(scriptDir)
 
         println("--- Triggering instance creation ---")
-        val playerInstance = classLoader.createInstance(Identifier("Player"))
 
-        println("\n--- Verification ---")
-        println("Successfully created instance of: ${playerInstance.javaClass.name}")
-        println("Fields of Player class:")
-        playerInstance.javaClass.declaredFields.forEach {
-            println("  - ${it.name}: ${it.type.name}")
-        }
+        classLoader.getDynamicClassOrGenerate(Identifier("Test")).constructors[1].newInstance(mockk<RuntimeConstructorMediator>(), arrayListOf("test1"))
+        classLoader.getDynamicClassOrGenerate(Identifier("Person")).constructors[1].newInstance(mockk<RuntimeConstructorMediator>(), arrayListOf("test1"))
 
-        println(playerInstance.javaClass.methods.first { it.name == "test" }.invoke(playerInstance, "aa"))
+      //  val playerInstance = classLoader.createInstance(Identifier("Person"), mockk<RuntimeConstructorMediator>(), "aaaa")
+/*
+
+        playerInstance::class.java
+            .getMethod("test", RuntimeFunctionMediator::class.java, String::class.java, ArrayList::class.java)
+            .invoke(playerInstance, NonSuspendRuntimeFunctionMediator(), "test1", arrayListOf("test2"))
+
+*/
 
         scriptDir.deleteRecursively()
+    }
+
+    private fun resolveWellKnownType(typeName: Identifier): Class<*>? {
+        classLoader.getDynamicClassOrNull(typeName)?.let { return it }
+
+        return when (typeName.identifier.lowercase()) {
+            "string" -> String::class.java
+            "long" -> Long::class.javaObjectType
+            "int" -> Int::class.javaObjectType
+            "boolean" -> Boolean::class.javaObjectType
+            "void" -> Void.TYPE
+            else -> null
+        }
     }
 }
