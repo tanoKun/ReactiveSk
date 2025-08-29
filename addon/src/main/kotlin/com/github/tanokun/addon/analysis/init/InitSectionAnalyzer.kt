@@ -1,21 +1,19 @@
 package com.github.tanokun.addon.analysis.init
 
 import ch.njol.skript.sections.SecLoop
-import ch.njol.skript.sections.SecWhile
 import com.github.tanokun.addon.analysis.ast.AstSection
 import com.github.tanokun.addon.analysis.ast.result.Diagnostic
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.dynamic.field.FieldDefinition
 import com.github.tanokun.addon.runtime.skript.init.ResolveTypedValueFieldEffect
-import jdk.nashorn.internal.codegen.CompilerConstants.className
 
 private typealias FieldName = Identifier
 
 /**
  * 特定のコード地点における、フィールドの初期化状態を表現する。
  *
- * @param definitelyAssigned この地点に到達する全てのパスで、確実に初期化済みのフィールドの集合
- * @param possiblyAssigned この地点に到達するいずれかのパスで、初期化された可能性のあるフィールドの集合
+ * @param definitelyAssigned この地点に到達する全てのパスで、確実に初期化済みのフィールドの集合 (確定性)
+ * @param possiblyAssigned この地点に到達するいずれかのパスで、初期化された可能性のあるフィールドの集合 (可能性)
  */
 private data class AnalysisState(
     val definitelyAssigned: Set<FieldName>,
@@ -31,6 +29,28 @@ private data class AnalysisResult(
     val finalState: AnalysisState
 )
 
+/**
+ * init セクションに対するデータフロー解析を行い、必須プロパティの初期化妥当性と重複初期化を検証します。
+ *
+ * # `解析手法`
+ *   古典的なデータフロー解析。AST を順にたどり、各地点の「状態」を伝播・合流させる。
+ *
+ * # `解析単位と遷移規則`
+ * - `行`: 対象のエフェクトが `ResolveTypedValueFieldEffect` かつ `可能性` の場合でも `重複初期化` としてエラー
+ * - `ブロック`: 中の実行単位をそれぞれ解析し、結果を返す
+ * - `If, Else-if, Else`:
+ *   - 各分岐は同一の初期状態から独立に解析。
+ *   - else なし: `絶対性` は不変(分岐に入らない経路があるため)。`可能性` は 各分岐全ての和集合
+ *   - else あり: `絶対性` は全分岐の積集合。`可能性` は全分岐の和集合
+ *   - else-if は then/else と同格の独立分岐として扱い、誤検出を避ける
+ * - Loop: 実行の経路を考慮し、ループ後の `絶対性` は変わらず、possibly は `可能性` は 解析結果の和集合
+ *
+ *
+ * @param initSectionAst 解析対象の init セクション AST（ルートブロック）
+ * @param className 診断メッセージに用いるクラス名
+ * @param requiredFields 全経路での初期化が求められるフィールド一覧
+ * @return [analyze] は検出した診断（エラー/警告）を時系列で返す
+ */
 class InitSectionAnalyzer(
     private val initSectionAst: AstSection.Block,
     private val className: Identifier,
