@@ -1,12 +1,12 @@
 package com.github.tanokun.addon.parse
 
 import com.github.tanokun.addon.SkriptClassDefinitionBaseVisitor
-import com.github.tanokun.addon.SkriptClassDefinitionLexer
 import com.github.tanokun.addon.SkriptClassDefinitionParser
-import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.definition.dynamic.constructor.InitSection
+import com.github.tanokun.addon.definition.dynamic.ClassDefinition
+import com.github.tanokun.addon.definition.dynamic.DeclarationModifiers
 import com.github.tanokun.addon.definition.dynamic.constructor.ConstructorParameter
+import com.github.tanokun.addon.definition.dynamic.constructor.InitSection
 import com.github.tanokun.addon.definition.dynamic.error.ThrowType
 import com.github.tanokun.addon.definition.dynamic.field.FieldDefinition
 import com.github.tanokun.addon.definition.dynamic.function.FunctionDefinition
@@ -19,8 +19,9 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
     override fun visitClassDef(ctx: SkriptClassDefinitionParser.ClassDefContext): ClassDefinition {
         val className = Identifier(ctx.name.text)
 
-        val constructorParams = ctx.constructorParams?.constructorParam()
-            ?.map { visit(it) as ConstructorParameter } ?: emptyList()
+        val constructorParams = ctx.constructorParams
+            ?.constructorParam()
+            ?.map(::visitConstructorParam) ?: emptyList()
 
         val initThrows: ArrayList<ThrowType> = arrayListOf()
         val fields = mutableListOf<FieldDefinition>()
@@ -31,17 +32,17 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
                 memberCtx.functionDef() != null -> functions.add(visitFunctionDef(memberCtx.functionDef()))
                 memberCtx.fieldSection() != null -> fields.addAll(visitFieldSection(memberCtx.fieldSection()))
                 memberCtx.initSection() != null -> {
-                    initThrows.addAll(memberCtx.initSection().throwsList()?.let { visitThrowsList(it) } ?: emptyList())
+                    initThrows.addAll(memberCtx.initSection().throwsList()?.let(::visitThrowsList) ?: emptyList())
                 }
             }
         }
 
-        val constructorParameterNames = constructorParams.map { it.parameterName }
-        val constructorFieldNames = constructorParams.filter { it.isProperty }.map { it.parameterName }
+        val constructorProperties = constructorParams.filter(ConstructorParameter::isProperty)
 
-        val constructFields = constructorParams
-            .filter(ConstructorParameter::isProperty)
-            .map(ConstructorParameter::toFieldDefinition)
+        val constructorParameterNames = constructorParams.map(ConstructorParameter::parameterName)
+        val constructorFieldNames = constructorProperties.map(ConstructorParameter::parameterName)
+
+        val constructFields = constructorProperties.map(ConstructorParameter::toFieldDefinition)
 
         if (constructorParameterNames.toSet().size != constructorParameterNames.size) {
             throw IllegalArgumentException("Duplicate constructor parameter name found in class $className")
@@ -58,37 +59,31 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
 
     override fun visitConstructorParam(ctx: SkriptClassDefinitionParser.ConstructorParamContext): ConstructorParameter {
         val modifier = parseModifier(ctx.accessModifiers())
-
-        val isProperty = ctx.mutability != null
-        val isMutable = ctx.mutability?.type == SkriptClassDefinitionLexer.VAR
-
+        val declarationModifier = visitDeclaration(ctx.declaration())
         val paramDef = visit(ctx.arg()) as ParameterDefinition
 
         return ConstructorParameter(
             parameterName = paramDef.parameterName,
             typeName = paramDef.typeName,
             isArray = paramDef.isArray,
-            isProperty = isProperty,
-            isMutable = isMutable,
+            declarationModifier = declarationModifier,
             modifier = modifier
         )
     }
 
     override fun visitFieldSection(ctx: SkriptClassDefinitionParser.FieldSectionContext): List<FieldDefinition> {
-        // field セクションが空でも安全に動作
-        return ctx.fieldDef().map { visit(it) as FieldDefinition }
+        return ctx.fieldDef().map { visitFieldDef(it) }
     }
 
     override fun visitFieldDef(ctx: SkriptClassDefinitionParser.FieldDefContext): FieldDefinition {
         val modifier = parseModifier(ctx.accessModifiers())
-        val isMutable = ctx.mutability.type == SkriptClassDefinitionLexer.VAR
-
+        val declarationModifier = ctx.declaration()?.let(::visitDeclaration) ?: 0
         val paramDef = visit(ctx.arg()) as ParameterDefinition
 
         return FieldDefinition(
             fieldName = paramDef.parameterName,
             typeName = paramDef.typeName,
-            isMutable = isMutable,
+            declarationModifier = declarationModifier,
             isArray = paramDef.isArray,
             modifier = modifier
         )
@@ -102,21 +97,16 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
         val modifier = parseModifier(ctx.accessModifiers())
         val funcName = Identifier(ctx.name.text)
 
-        val parameters = ctx.funcArgs()?.arg()
-            ?.map { visit(it) as ParameterDefinition } ?: emptyList()
+        val parameters = ctx.funcArgs()?.arg()?.map(::visitArg) ?: emptyList()
 
         val parameterNames = parameters.map { it.parameterName }
         if (parameterNames.toSet().size != parameterNames.size) {
             throw IllegalArgumentException("Duplicate parameter name found in function $funcName")
         }
 
-        // 戻り型は「:: 型」または「: 型」の両方に対応(functionReturn にラベル付き)
-        val returnTypeName: Identifier? =
-            ctx.functionReturn()?.returnType?.let { (visit(it) as TypeInfo).name }
+        val returnTypeName: Identifier? = ctx.functionReturn()?.returnType?.let(::visitType)?.name
 
-        // function 本体はスキップ対象。throws は文法で許容されていれば取得、なければ空
-        val throws =
-            ctx.throwsList()?.let { visitThrowsList(it) } ?: emptyList()
+        val throws = ctx.throwsList()?.let(::visitThrowsList) ?: emptyList()
 
         return FunctionDefinition(funcName, parameters, returnTypeName, modifier, throws)
     }
@@ -124,6 +114,7 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
     override fun visitArg(ctx: SkriptClassDefinitionParser.ArgContext): ParameterDefinition {
         val name = Identifier(ctx.name.text)
         val typeInfo = visit(ctx.type()) as TypeInfo
+
         return ParameterDefinition(name, typeInfo.name, typeInfo.isArray)
     }
 
@@ -137,5 +128,15 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
 
     override fun visitThrowsList(ctx: SkriptClassDefinitionParser.ThrowsListContext): List<ThrowType> {
         return ctx.throwsParam().map { ThrowType(Identifier(it.throw_.text)) }
+    }
+
+    override fun visitDeclaration(ctx: SkriptClassDefinitionParser.DeclarationContext?): Int {
+        if (ctx == null) return 0
+
+        val isImmutable = if (ctx.VAL() != null) DeclarationModifiers.IMMUTABLE else 0
+        val isMutable = if (ctx.VAR() != null) DeclarationModifiers.MUTABLE else 0
+        val isFactor = if (ctx.FACTOR() != null) DeclarationModifiers.FACTOR else 0
+
+        return isImmutable or isMutable or isFactor
     }
 }

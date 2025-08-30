@@ -32,7 +32,8 @@ classDef
       (NEWLINE
        INDENT
        classBody
-       DEDENT)?
+       DEDENT
+      )?
     ;
 
 constructorParamList
@@ -40,7 +41,7 @@ constructorParamList
     ;
 
 constructorParam
-    : (accessModifiers? mutability=(VAL | VAR))? arg
+    : (accessModifiers? declaration)? arg
     ;
 
 throwsList
@@ -60,6 +61,12 @@ type
     | ARRAY OF arrayType=Identifier
     ;
 
+declaration
+    : VAL
+    | VAR
+    | FACTOR
+    ;
+
 classBody
     : classMember*
     ;
@@ -77,7 +84,7 @@ fieldSection
     ;
 
 fieldDef
-    : accessModifiers? mutability=(VAL | VAR) arg NEWLINE
+    : accessModifiers? declaration arg NEWLINE
     ;
 
 // init はヘッダのみ解析。本体は任意のブロック(空も可)をスキップ
@@ -135,6 +142,7 @@ FUNCTION: 'function';
 INIT: 'init';
 VAL: 'val';
 VAR: 'var';
+FACTOR: 'factor';
 ARRAY: 'array';
 OF: 'of';
 PRIVATE: 'private';

@@ -32,7 +32,7 @@ class FieldsDefiner(
             current = current
                 .defineField(fieldOf(field.fieldName.identifier), fieldType, Modifier.PUBLIC)
                 .annotateField(ModifierMetadata(field.modifier))
-                .let { if (field.isMutable) it.annotateField(MutableFieldMetadata()) else it }
+                .let { if (field.isProperty()) it.annotateField(MutableFieldMetadata()) else it }
 
             if (!field.isArray) return@forEach
 

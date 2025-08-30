@@ -21,5 +21,5 @@ data class ClassDefinition(
      *
      * @return 初期化が必要なフィールドのリスト
      */
-    fun getRequiredInitializationFields() = fields - constructorParameters.filter { it.isProperty }.map { it.toFieldDefinition() }
+    fun getRequiredInitializationFields() = fields - constructorParameters.filter { it.isProperty() }.map { it.toFieldDefinition() }
 }

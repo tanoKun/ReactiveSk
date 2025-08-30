@@ -84,7 +84,7 @@ class ConstructorDefiner(
             MethodCall.invoke(Object::class.java.getDeclaredConstructor()).onSuper()
 
         val setProps = ctorParams.foldIndexed(beginFrameImpl) { index, acc, p ->
-            if (!p.isProperty) return@foldIndexed acc
+            if (!p.isProperty()) return@foldIndexed acc
 
             if (p.isArray) {
                 val setterName = internalArrayListSetterOf(p.parameterName.identifier)

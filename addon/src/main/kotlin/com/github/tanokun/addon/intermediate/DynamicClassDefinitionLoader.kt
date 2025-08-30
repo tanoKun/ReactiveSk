@@ -1,17 +1,14 @@
 package com.github.tanokun.addon.intermediate
 
 import com.github.tanokun.addon.SkriptClassDefinitionParser
-import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.Identifier
+import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.parse.DynamicClassParserVisitor
 import com.github.tanokun.addon.parse.SkriptClassDefinitionIndentLexer
 import org.antlr.v4.runtime.*
-import org.antlr.v4.runtime.misc.ParseCancellationException
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
-import org.antlr.v4.runtime.BailErrorStrategy
 import org.antlr.v4.runtime.atn.ATNConfigSet
 import org.antlr.v4.runtime.dfa.DFA
+import org.antlr.v4.runtime.misc.ParseCancellationException
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
@@ -77,7 +74,6 @@ class DynamicClassDefinitionLoader {
                         removeErrorListeners()
                         addErrorListener(MinimalErrorListener(file.name, lines, showLineSnippet = true))
                     }
-
 
                     val tokens = CommonTokenStream(lexer)
 
