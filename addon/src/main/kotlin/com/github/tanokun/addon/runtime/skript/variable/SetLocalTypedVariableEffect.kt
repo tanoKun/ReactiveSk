@@ -20,7 +20,7 @@ class SetLocalTypedVariableEffect: Effect() {
     companion object {
         init {
             Skript.registerEffect(SetLocalTypedVariableEffect::class.java,
-                "\\[%*identifier%\\] \\:= %object%",
+                "\\[%*identifier%\\] (\\:= | ->) %object%",
             )
         }
     }
