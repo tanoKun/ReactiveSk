@@ -8,9 +8,13 @@ Skript に **オブジェクト指向・軽いリアクティブ**を使用し�
   * [field セクション](#field-セクション)
   * [init セクション](#init-セクション)
 * [クラス関数定義](#クラス関数定義)
+* [クラス関数呼び出し](#クラス関数呼び出し)
+  * [Non Suspend (Expression, Effect)](#non-suspend-expression-effect)
 * [型と配列](#型と配列)
 * [変数宣言（型制限変数）](#変数宣言型制限変数)
   * [変数アクセス](#変数アクセス)
+* [例](#例)
+  * [カウンタークラス](#カウンタークラス)
 <!-- TOC -->
 
 # クラス定義
@@ -61,6 +65,7 @@ init:
     resolve test3 := "resolved!"
 ```
 
+全フィールドを全ての経路で解決する必要があります。
 
 # クラス関数定義
 `function name(parameters...):: returnType:` の形で宣言します。
@@ -77,6 +82,23 @@ function name(test: string):: string:
 function name(test: string):
     # code...
 ```
+
+関数に返り値が設定されている場合、
+全ての経路で `fun return` が**実行されることが保証されます**。
+
+
+# クラス関数呼び出し
+
+## Non Suspend (Expression, Effect)
+> Syntax: call `%functionName%` in `%object%`
+
+```
+val count := call count in [classInstance]
+
+call count in [classInstance]
+```
+この関数の呼び出しは、`中断されず`に**即座に値を返します。**
+関数内に `wait` につながる構文がある場合、値が `null` になる可能性があります。
 
 - ポイント
   - パラメータには型を明示します（配列も可）。
@@ -111,3 +133,47 @@ val count (integer)             # 宣言
 
 `クラス関数` や `init セクション` において定義されている`引数`や`プロパティ`は、
 全て上記の方法でアクセス可能です。
+
+# 例
+## カウンタークラス
+`クラス関数`で実装した`カウンター` と `Skript 本来の関数`で実装した`カウンター` の比較です。
+
+```
+class Counter[var count: long]:
+    function increment():
+        [this].count -> [this].count + 1
+        
+#200万回分 カウントする。 (Class)
+command /class:
+    trigger:
+        var test2 := create Counter with 0
+
+        loop 20 times:
+            set {_start} to now
+
+            loop 100000 times:
+                call increment in [test2]
+            set {_end} to now
+            set {_diff} to difference between {_end} and {_start}
+            add {_diff} to {_time} 
+            broadcast "処理時間: %{_diff}%"
+        
+        send "200万回の合計: %{_time}%"
+        
+#200万回分 カウントする。 (Class)
+command /origin:
+    trigger:
+        loop 20 times:
+            set {_start} to now
+            loop 100000 times:
+                set {_aa} to increment({_aa})
+            set {_end} to now
+            set {_diff} to difference between {_end} and {_start}
+            add {_diff} to {_time} 
+            broadcast "処理時間: %{_diff}%"
+
+        send "200万回の合計: %{_time}%"
+
+function increment(count: number) :: number:
+    return {_count} + 1
+```
