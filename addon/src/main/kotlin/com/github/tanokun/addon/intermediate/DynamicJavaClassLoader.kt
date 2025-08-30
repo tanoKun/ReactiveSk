@@ -1,9 +1,9 @@
 package com.github.tanokun.addon.intermediate
 
 import com.github.tanokun.addon.definition.Identifier
+import com.github.tanokun.addon.definition.dynamic.DynamicClass
 import com.github.tanokun.addon.intermediate.generator.ByteBuddyGenerator
 import com.github.tanokun.addon.intermediate.metadata.FunctionReturnTypeMetadata
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
 import java.lang.reflect.Modifier
 
 /**

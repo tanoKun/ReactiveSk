@@ -1,9 +1,9 @@
 package com.github.tanokun.addon.intermediate.generator
 
-import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
+import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.dynamic.DynamicClass
+import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.ClassFileVersion
 import net.bytebuddy.dynamic.DynamicType
@@ -50,7 +50,7 @@ class ByteBuddyGenerator {
             .name(fqcn)
             .modifiers(Modifier.PUBLIC)
 
-        builder = fieldsDefiner.defineAllFields(builder, classDefinition)
+        builder = fieldsDefiner.defineFields(builder, classDefinition)
         builder = methodsDefiner.defineAllMethods(builder, classDefinition)
         builder = constructorDefiner.defineConstructor(builder, classDefinition)
 

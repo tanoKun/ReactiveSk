@@ -4,24 +4,23 @@ import ch.njol.skript.Skript
 import ch.njol.skript.lang.Effect
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
-import ch.njol.skript.sections.SecLoop
-import ch.njol.skript.sections.SecWhile
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.skript.variables.Variables
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
-import com.github.tanokun.addon.definition.skript.variable.getScopeCount
-import com.github.tanokun.addon.definition.skript.variable.getTopNode
+import com.github.tanokun.addon.definition.variable.getDepth
+import com.github.tanokun.addon.definition.variable.getTopNode
+import com.github.tanokun.addon.runtime.variable.VariableFrames
 import org.bukkit.event.Event
 
 @Suppress("UNCHECKED_CAST")
-class SetTypedVariableEffect: Effect() {
+class SetLocalTypedVariableEffect: Effect() {
     companion object {
         init {
-            Skript.registerEffect(SetTypedVariableEffect::class.java,
-                "\\[%identifier%\\] (\\:= | ->) %object%",
+            Skript.registerEffect(SetLocalTypedVariableEffect::class.java,
+                "\\[%*identifier%\\] \\:= %object%",
             )
         }
     }
@@ -39,7 +38,7 @@ class SetTypedVariableEffect: Effect() {
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
         val variableName = (exprs[0] as? Expression<Identifier>)?.getSingle(null) ?: let {
-            Skript.error("Variable name '$exprs[0]' is not invalid.")
+            Skript.error("Variable name ${exprs[0]} is not invalid.")
             return false
         }
 
@@ -48,10 +47,12 @@ class SetTypedVariableEffect: Effect() {
             return false
         }
 
-        val scopeCount = node.getScopeCount()
+        val depth = node.getDepth()
         val topNode = node.getTopNode()
 
-        val declaration = TypedVariableResolver.getDeclarationInScopeChain(topNode, scopeCount, variableName)
+        TypedVariableResolver.touchSection(topNode, depth, parser.currentSections.firstOrNull())
+
+        val declaration = TypedVariableResolver.getDeclarationInScopeChain(topNode, depth, variableName)
 
         if (declaration == null) {
             Skript.error("Typed variable '$variableName' is not declared in scope chain.")
@@ -62,7 +63,7 @@ class SetTypedVariableEffect: Effect() {
         val type = declaration.type
 
         definitionExpr = (exprs.getOrNull(1) as? Expression<Any>)?.let { LiteralUtils.defendExpression(it) } ?: let {
-            Skript.error("Definition expression '${exprs[1]}' is not invalid.")
+            Skript.error("Definition expression ${exprs[1]} is not invalid.")
             return false
         }
 
@@ -72,11 +73,9 @@ class SetTypedVariableEffect: Effect() {
         }
 
         if (!type.isAssignableFrom(definitionExpr.returnType)) {
-            Skript.error("Cannot assign '$definitionExpr' to '$variableName' because it's not type '${type.simpleName}' but '${definitionExpr.returnType.simpleName}'")
+            Skript.error("Cannot assign $definitionExpr to '$variableName' because it's not type '${type.simpleName}' but '${definitionExpr.returnType.simpleName}'")
             return false
         }
-
-        internalTypedVariable = internalTypedVariableOf(variableName, declaration.scopeCount)
 
         return true
     }
@@ -85,7 +84,7 @@ class SetTypedVariableEffect: Effect() {
         val value = definitionExpr.getSingle(e)
 
         if (declaration.isMutable) {
-            Variables.setVariable(internalTypedVariable, value, e, true)
+            VariableFrames.set(e, declaration.index, value)
             return
         }
 
@@ -94,7 +93,7 @@ class SetTypedVariableEffect: Effect() {
             throw IllegalStateException("Typed variable '${declaration.variableName}' is initialized." + onDebug)
         }
 
-        Variables.setVariable(internalTypedVariable, value, e, true)
+        VariableFrames.set(e, declaration.index, value)
     }
 
     override fun toString(e: Event?, debug: Boolean): String = ""

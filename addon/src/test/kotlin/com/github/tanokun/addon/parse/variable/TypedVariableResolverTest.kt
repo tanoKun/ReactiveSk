@@ -5,9 +5,9 @@ import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import io.mockk.mockk
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 
 @DisplayName("TypedVariableResolver の単体テスト")
 class TypedVariableResolverTest {
@@ -20,7 +20,7 @@ class TypedVariableResolverTest {
         val top = mockk<Node>()
         val decl = TypedVariableDeclaration(id("x"), String::class.java, false, 2)
 
-        TypedVariableResolver.addDeclaration(top, decl)
+        TypedVariableResolver.declare(top, decl)
 
         val result = TypedVariableResolver.getDeclarationInScopeChain(top, 2, id("x"))
         assertNotNull(result)
@@ -34,8 +34,8 @@ class TypedVariableResolverTest {
         val outer = TypedVariableDeclaration(id("x"), Long::class.java, false, 0)
         val inner = TypedVariableDeclaration(id("x"), String::class.java, false, 2)
 
-        TypedVariableResolver.addDeclaration(top, outer)
-        TypedVariableResolver.addDeclaration(top, inner)
+        TypedVariableResolver.declare(top, outer)
+        TypedVariableResolver.declare(top, inner)
 
         val result = TypedVariableResolver.getDeclarationInScopeChain(top, 2, id("x"))
         assertNotNull(result)
@@ -48,7 +48,7 @@ class TypedVariableResolverTest {
         val top = mockk<Node>()
         val outer = TypedVariableDeclaration(id("y"), Int::class.javaObjectType, false, 1)
 
-        TypedVariableResolver.addDeclaration(top, outer)
+        TypedVariableResolver.declare(top, outer)
 
         val result = TypedVariableResolver.getDeclarationInScopeChain(top, 3, id("y"))
         assertNotNull(result)
@@ -59,7 +59,7 @@ class TypedVariableResolverTest {
     @DisplayName("名前が一致しない場合は null を返す")
     fun getDeclaration_nameNotFound() {
         val top = mockk<Node>()
-        TypedVariableResolver.addDeclaration(top, TypedVariableDeclaration(id("y"), String::class.java, false, 1))
+        TypedVariableResolver.declare(top, TypedVariableDeclaration(id("y"), String::class.java, false, 1))
 
         val result = TypedVariableResolver.getDeclarationInScopeChain(top, 1, id("x"))
         assertNull(result)
@@ -71,7 +71,7 @@ class TypedVariableResolverTest {
         val topA = mockk<Node>()
         val topB = mockk<Node>()
 
-        TypedVariableResolver.addDeclaration(topA, TypedVariableDeclaration(id("x"), String::class.java, false, 1))
+        TypedVariableResolver.declare(topA, TypedVariableDeclaration(id("x"), String::class.java, false, 1))
 
         val result = TypedVariableResolver.getDeclarationInScopeChain(topB, 1, id("x"))
         assertNull(result)

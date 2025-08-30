@@ -7,22 +7,19 @@ import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.sections.SecLoop
 import ch.njol.skript.sections.SecWhile
-import ch.njol.skript.variables.Variables
+import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.skript.dynamic.InitDefinitionInjector
-import com.github.tanokun.addon.definition.skript.variable.getScopeCount
-import com.github.tanokun.addon.definition.skript.variable.getTopNode
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
+import com.github.tanokun.addon.definition.variable.getDepth
+import com.github.tanokun.addon.definition.variable.getTopNode
 import com.github.tanokun.addon.intermediate.generator.fieldOf
 import com.github.tanokun.addon.intermediate.generator.internalArrayListSetterOf
+import com.github.tanokun.addon.lookup
 import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
-import com.github.tanokun.addon.runtime.skript.field.fieldGetterCache
-import com.github.tanokun.addon.runtime.skript.field.fieldSetterCache
-import com.github.tanokun.addon.runtime.skript.field.lookup
-import com.github.tanokun.addon.runtime.skript.variable.internalTypedVariableOf
+import com.github.tanokun.addon.runtime.variable.VariableFrames
 import org.bukkit.event.Event
-import java.lang.IllegalStateException
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodType
 
@@ -31,7 +28,7 @@ class ResolveTypedValueFieldEffect: Effect() {
     companion object {
         init {
             Skript.registerEffect(ResolveTypedValueFieldEffect::class.java,
-                "resolve %identifier% \\:= %object%"
+                "resolve %*identifier% \\:= %object%"
             )
         }
     }
@@ -48,8 +45,6 @@ class ResolveTypedValueFieldEffect: Effect() {
 
     private lateinit var getterHandle: MethodHandle
 
-    private lateinit var internalTypedVariableOfThis: String
-
     override fun init(
         exprs: Array<out Expression<*>?>,
         matchedPattern: Int,
@@ -63,7 +58,7 @@ class ResolveTypedValueFieldEffect: Effect() {
         }
 
         fieldName = (exprs[0] as Expression<Identifier>).getSingle(null) ?: let {
-            Skript.error("Field name is not specified. '${exprs[1]}'")
+            Skript.error("Field name is not specified. ${exprs[1]}")
             return false
         }
 
@@ -83,7 +78,7 @@ class ResolveTypedValueFieldEffect: Effect() {
             return false
         }
 
-        valueExpr = exprs[1] as Expression<Any>
+        valueExpr = LiteralUtils.defendExpression(exprs[1])
 
         if (!valueExpr.isSingle) {
             Skript.error("Definition '$valueExpr' must be single.")
@@ -99,31 +94,27 @@ class ResolveTypedValueFieldEffect: Effect() {
             Skript.warning("Resolving field '$fieldName' inside a loop may cause 'already initialized' error if the field is already initialized.")
         }
 
-        setterHandle = fieldSetterCache.computeIfAbsent(field) {
+        setterHandle =
             if (field.type == ArrayList::class.java) {
-                return@computeIfAbsent lookup
-                    .findVirtual(
-                        clazz,
-                        internalArrayListSetterOf(fieldName.identifier),
-                        MethodType.methodType(Void.TYPE, ArrayList::class.java)
-                    )
-            }
+                lookup.findVirtual(
+                    clazz,
+                    internalArrayListSetterOf(fieldName.identifier),
+                    MethodType.methodType(Void.TYPE, ArrayList::class.java)
+                )
+            } else lookup.unreflectSetter(field)
 
-            lookup.unreflectSetter(field)
-        }
 
-        getterHandle = fieldGetterCache.computeIfAbsent(field) {
-            lookup.unreflectGetter(it)
-        }
+        getterHandle = lookup.unreflectGetter(field)
 
-        val declaration = TypedVariableResolver.getDeclarationInScopeChain(parseNode.getTopNode(), parseNode.getScopeCount(),
-            Identifier("this")
-        ) ?: let {
+        val depth = parseNode.getDepth()
+        val topNode = parseNode.getTopNode()
+
+        TypedVariableResolver.touchSection(topNode, depth, parser.currentSections.firstOrNull())
+
+        TypedVariableResolver.getDeclarationInScopeChain(topNode, depth, Identifier("this")) ?: let {
             Skript.error("Cannot find 'this' variable in scope chain.")
             return false
         }
-
-        internalTypedVariableOfThis = internalTypedVariableOf(declaration.variableName, declaration.scopeCount)
 
         return true
     }
@@ -131,7 +122,7 @@ class ResolveTypedValueFieldEffect: Effect() {
     override fun execute(e: Event) {
         e as RuntimeConstructorMediator
 
-        val target = Variables.getVariable(internalTypedVariableOfThis, e, true) ?: throw IllegalStateException("Integrity of '$internalTypedVariableOfThis' is broken.")
+        val target = VariableFrames.get(e, 0) ?: throw IllegalStateException("Integrity of 'this' is broken.")
         val value = valueExpr.getSingle(e) ?: throw IllegalStateException("Integrity of '$valueExpr' is broken.")
 
         if (getterHandle.invoke(target) != null) throw IllegalStateException("Cannot resolve field '$fieldName' in '${target::class.java.simpleName}' because it's already initialized.")

@@ -1,3 +1,4 @@
+/*
 package com.github.tanokun.addon.runtime.skript.function.call
 
 import ch.njol.skript.Skript
@@ -37,7 +38,7 @@ class AwaitCallFunctionEffect : Effect() {
     ): Boolean {
         targetExpr = exprs[0] as Expression<Any>
         funcName = (exprs[1] as Expression<Identifier>).getSingle(null)?.identifier ?: let {
-            Skript.error("関数名は、リテラルにしてください。 '${exprs[1]}'")
+            Skript.error("関数名は、リテラルにしてください。 ${exprs[1]}")
             return false
         }
 
@@ -61,8 +62,9 @@ class AwaitCallFunctionEffect : Effect() {
 
         if (inClass == target::class.java) method.isAccessible = true
 
-        method.invoke(target, *argsExpr.map { it.getSingle(e) }.toTypedArray())
+       //method.invoke(target, *argsExpr.map { it.getSingle(e) }.toTypedArray())
 
+*/
 /*        call(funcNameExpr, targetExpr, argsExpr, e) { function, target, arguments ->
             val awaitFunction = AwaitFunctionRuntimeBukkitEvent()
             val localVars = Variables.removeLocals(e)
@@ -89,7 +91,8 @@ class AwaitCallFunctionEffect : Effect() {
             }
 
             return null
-        }*/
+        }*//*
+
 
         return next
     }
@@ -97,3 +100,4 @@ class AwaitCallFunctionEffect : Effect() {
 
     override fun toString(e: Event?, debug: Boolean): String? = "await call"
 }
+*/

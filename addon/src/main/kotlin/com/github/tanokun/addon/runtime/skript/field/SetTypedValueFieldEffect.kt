@@ -4,18 +4,17 @@ import ch.njol.skript.Skript
 import ch.njol.skript.lang.Effect
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
+import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.intermediate.generator.internalArrayListSetterOf
 import com.github.tanokun.addon.intermediate.metadata.ModifierMetadata
 import com.github.tanokun.addon.intermediate.metadata.MutableFieldMetadata
+import com.github.tanokun.addon.lookup
 import org.bukkit.event.Event
-import java.lang.IllegalStateException
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodType
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
-
-val fieldSetterCache = mutableMapOf<Field, MethodHandle>()
 
 @Suppress("UNCHECKED_CAST")
 class SetTypedValueFieldEffect: Effect() {
@@ -58,7 +57,7 @@ class SetTypedValueFieldEffect: Effect() {
             Skript.error("Cannot write field '${fieldExpr.fieldName}' in '${fieldExpr.targetClass.simpleName}' because it is immutable field.")
         }
 
-        valueExpr = exprs[1] as Expression<Any>
+        valueExpr = LiteralUtils.defendExpression(exprs[1])
 
         if (!valueExpr.isSingle) {
             Skript.error("Definition '$valueExpr' must be single.")
@@ -66,22 +65,19 @@ class SetTypedValueFieldEffect: Effect() {
         }
 
         if (!field.type.isAssignableFrom(valueExpr.returnType)) {
-            Skript.error("Cannot assign '$valueExpr' to field '${fieldExpr.fieldName}' because it's not type '${field.type.simpleName}' but '${valueExpr.returnType.simpleName}'")
+            Skript.error("Cannot assign $valueExpr to field '${fieldExpr.fieldName}' because it's not type '${field.type.simpleName}' but '${valueExpr.returnType.simpleName}'")
             return false
         }
 
-        setterHandle = fieldSetterCache.computeIfAbsent(field) {
+        setterHandle =
             if (field.type == ArrayList::class.java) {
-                return@computeIfAbsent lookup
-                    .findVirtual(
-                        targetExpr.getReturnType(),
-                        internalArrayListSetterOf(fieldExpr.fieldName.identifier),
-                        MethodType.methodType(Void.TYPE, ArrayList::class.java)
-                    )
-            }
+                lookup.findVirtual(
+                    targetExpr.getReturnType(),
+                    internalArrayListSetterOf(fieldExpr.fieldName.identifier),
+                    MethodType.methodType(Void.TYPE, ArrayList::class.java)
+                )
+            } else lookup.unreflectSetter(field)
 
-            lookup.unreflectSetter(field)
-        }
 
         return true
     }

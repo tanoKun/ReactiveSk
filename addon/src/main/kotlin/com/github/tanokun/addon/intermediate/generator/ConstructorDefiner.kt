@@ -1,14 +1,12 @@
 package com.github.tanokun.addon.intermediate.generator
 
 import ch.njol.skript.lang.TriggerItem
-import ch.njol.skript.variables.Variables
 import com.github.tanokun.addon.definition.dynamic.ClassDefinition
-import com.github.tanokun.addon.definition.Identifier
+import com.github.tanokun.addon.definition.dynamic.DynamicClass
 import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
 import com.github.tanokun.addon.intermediate.reduce.InitAdvice
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
 import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
-import com.github.tanokun.addon.runtime.skript.variable.internalTypedVariableOf
+import com.github.tanokun.addon.runtime.variable.VariableFrames
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.dynamic.DynamicType
 import net.bytebuddy.implementation.FieldAccessor
@@ -17,15 +15,59 @@ import net.bytebuddy.implementation.MethodCall
 import net.bytebuddy.matcher.ElementMatchers.named
 import org.bukkit.event.Event
 import java.lang.reflect.Modifier
-import kotlin.jvm.java
 
 /**
- * コンストラクタ本体と init 呼び出し(プロキシ)を定義
+ * 本体コンストラクタと、そこから呼び出される疑似コンストラクタ (Method) を作成します。
+ * [ClassDefinition.constructorParameters] で定義されているコンストラクタパラメーターのうち、プロパティであるものは
+ * 本体コンストラクタで先に初期化されます。
+ *
+ * ## 本体コンストラクタ
+ * 以下の順番で生成されます。
+ * - super()
+ * - プロパティ初期化
+ * - 疑似コンストラクタの呼び出し
+ *
+ * ## 例
+ * ```
+ * class Test[val property1: string, argument1: string]:
+ *     field:
+ *         val field1: string
+ * ```
+ * このようなクラス定義では、以下のイメージでバイトコードが生成されます。
+ * ```java
+ * public class Test implements DynamicClass {
+ *     @ModifierMetadata(modifiers = 1)
+ *     public String property1;
+ *     public static TriggerItem constructor;
+ *
+ *     public Test(RuntimeConstructorMediator var1, String var2, String var3) {
+ *         super();
+ *         this.property1 = var2;
+ *         this.proxyConstructor(var1, var2, var3);
+ *     }
+ *
+ *     private void proxyConstructor(RuntimeConstructorMediator var1, String var2, String var3) {
+ *         VariableFrames.set(var1, 0, this);
+ *         VariableFrames.set(var1, 1, var2);
+ *         VariableFrames.set(var1, 2, var3);
+ *
+ *         TriggerItem.walk(constructor, var1);
+ *     }
+ * }
+ * ```
+ *
+ * メソッド名や、フィールド名は実際と異なりますが、このようになります。
+ * [VariableFrames] へのフレーム登録が行われていますが、注入される [Event] を基準にして
+ * 自身インスタンスを `index 0` とし、そこから`コンストラクタパラメーター`が連番されます。
+ *
+ * skript 側で解析したものを挿入する際、
+ * コンストラクタパラメーター分を加算するのを忘れないようにしてください。
+ *
  */
 class ConstructorDefiner(
     private val creator: DynamicJavaClassLoader,
 ) {
-    private val setVariableMethod = Variables::class.java.getMethod("setVariable", String::class.java, Any::class.java, Event::class.java, Boolean::class.java)
+    private val setVariableMethod = VariableFrames::class.java.getMethod("set", Event::class.java, Int::class.java, Any::class.java)
 
     fun defineConstructor(
         builder: DynamicType.Builder<out DynamicClass>,
@@ -38,12 +80,10 @@ class ConstructorDefiner(
             *ctorParams.map { creator.getClassOrGenerateOrListFromAll(it.typeName, it.isArray) }.toTypedArray()
         )
 
-        // super()
-        val ctorImpl: Implementation.Composable =
+        val beginFrameImpl: Implementation.Composable =
             MethodCall.invoke(Object::class.java.getDeclaredConstructor()).onSuper()
 
-        // 引数からプロパティへ代入(配列は内部セッタ経由)
-        val setProps = ctorParams.foldIndexed(ctorImpl) { index, acc, p ->
+        val setProps = ctorParams.foldIndexed(beginFrameImpl) { index, acc, p ->
             if (!p.isProperty) return@foldIndexed acc
 
             if (p.isArray) {
@@ -70,40 +110,39 @@ class ConstructorDefiner(
             .defineMethod(INTERNAL_CONSTRUCTOR_PROXY, Void.TYPE, Modifier.PRIVATE)
             .withParameters(*paramTypes)
             .intercept(createConstructorProxyImplementation(classDefinition))
+            .defineField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY, Int::class.java, Modifier.PUBLIC or Modifier.STATIC)
+            .defineField(INTERNAL_INIT_TRIGGER_SECTION, TriggerItem::class.java, Modifier.PUBLIC or Modifier.STATIC)
     }
 
     private fun createConstructorProxyImplementation(classDefinition: ClassDefinition): Implementation {
-        val ctorParams = classDefinition.constructorParameters
+        val constructorParameters = classDefinition.constructorParameters
 
-        val setThis: Implementation.Composable =
-            createSetVariableToSkriptImplementation(Identifier("this")) { it.withThis() }
+        val beginFrameImpl: Implementation.Composable = MethodCall.invoke(VariableFrames::class.java.getMethod("beginFrame", Event::class.java, Int::class.java))
+            .withArgument(0)
+            .withField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY)
+            .andThen(createSetTypedVariableImplementation(0) { it.withThis() })
 
-        val setParams = ctorParams.foldIndexed(setThis) { index, acc, p ->
-            acc.andThen(
-                createSetVariableToSkriptImplementation(p.parameterName) {
-                    it.withArgument(index + 1)
-                }
-            )
+        val setParamsImpl = constructorParameters.foldIndexed(beginFrameImpl) { index, acc, p ->
+            acc.andThen(createSetTypedVariableImplementation(index + 1) { it.withArgument(index + 1) })
         }
 
-        val body = setParams.andThen(
+        val bodyImpl = setParamsImpl.andThen(
             MethodCall.invoke(TriggerItem::class.java.getMethod("walk", TriggerItem::class.java, Event::class.java))
                 .withField(INTERNAL_INIT_TRIGGER_SECTION)
                 .withArgument(0)
         )
 
-        return Advice.to(InitAdvice::class.java).wrap(body)
+        return Advice.to(InitAdvice::class.java).wrap(bodyImpl)
     }
 
-    private fun createSetVariableToSkriptImplementation(
-        variableName: Identifier,
+    private fun createSetTypedVariableImplementation(
+        index: Int,
         valueSet: (MethodCall) -> MethodCall
     ): Implementation.Composable {
         return MethodCall
             .invoke(setVariableMethod)
-            .with(internalTypedVariableOf(variableName, 0))
-            .let(valueSet)
             .withArgument(0)
-            .with(true)
+            .with(index)
+            .let(valueSet)
     }
 }

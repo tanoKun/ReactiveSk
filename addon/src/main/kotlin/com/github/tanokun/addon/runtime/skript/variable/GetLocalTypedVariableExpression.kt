@@ -5,32 +5,26 @@ import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
-import ch.njol.skript.variables.Variables
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
-import com.github.tanokun.addon.definition.skript.variable.getScopeCount
-import com.github.tanokun.addon.definition.skript.variable.getTopNode
+import com.github.tanokun.addon.definition.variable.getDepth
+import com.github.tanokun.addon.definition.variable.getTopNode
+import com.github.tanokun.addon.runtime.variable.VariableFrames
 import org.bukkit.event.Event
-import kotlin.jvm.java
 
-private const val INTERNAL_TYPED_VARIABLE_PREFIX = $$"_rSk$t$v$"
-
-fun internalTypedVariableOf(name: Identifier, scopeCount: Int): String = "$INTERNAL_TYPED_VARIABLE_PREFIX$scopeCount$$name"
 
 @Suppress("UNCHECKED_CAST")
-class GetTypedVariableExpression: SimpleExpression<Any>() {
+class GetLocalTypedVariableExpression: SimpleExpression<Any>() {
     companion object {
         init {
             Skript.registerExpression(
-                GetTypedVariableExpression::class.java, Any::class.java, ExpressionType.COMBINED,
-                "\\[%identifier%\\]"
+                GetLocalTypedVariableExpression::class.java, Any::class.java, ExpressionType.COMBINED,
+                "\\[%*identifier%\\]"
             )
         }
     }
-
-    private lateinit var internalTypedVariable: String
 
     private lateinit var declaration: TypedVariableDeclaration
 
@@ -41,7 +35,7 @@ class GetTypedVariableExpression: SimpleExpression<Any>() {
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
         val variableName = (exprs[0] as? Expression<Identifier>)?.getSingle(null) ?: let {
-            Skript.error("Variable name '$exprs[0]' is not invalid.")
+            Skript.error("Variable name ${exprs[0]} is not invalid.")
             return false
         }
 
@@ -50,23 +44,22 @@ class GetTypedVariableExpression: SimpleExpression<Any>() {
             return false
         }
 
-        val scopeCount = node.getScopeCount()
+        val depth = node.getDepth()
         val topNode = node.getTopNode()
-        internalTypedVariable = internalTypedVariableOf(variableName, scopeCount)
-        declaration = TypedVariableResolver.getDeclarationInScopeChain(topNode, scopeCount, variableName) ?: let {
+
+        TypedVariableResolver.touchSection(topNode, depth, parser.currentSections.firstOrNull())
+
+        declaration = TypedVariableResolver.getDeclarationInScopeChain(topNode, depth, variableName) ?: let {
             Skript.error("Typed variable '$variableName' is not declared in scope chain.")
             return false
         }
-
-        internalTypedVariable = internalTypedVariableOf(variableName, declaration.scopeCount)
 
         return true
     }
 
     override fun get(e: Event): Array<out Any> {
-        val value = Variables.getVariable(internalTypedVariable, e, true) ?: let {
-            val onDebug = if (Skript.debug()) "debug -> [internal: $internalTypedVariable, declaration: $declaration]" else ""
-            throw IllegalStateException("Typed variable '${declaration.variableName}' is not initialized." + onDebug)
+        val value = VariableFrames.get(e, declaration.index) ?: let {
+            throw IllegalStateException("Typed variable '${declaration.variableName}' is not initialized.")
         }
 
         return arrayOf(value)

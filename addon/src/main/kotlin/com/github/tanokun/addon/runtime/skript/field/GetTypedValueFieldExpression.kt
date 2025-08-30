@@ -8,20 +8,16 @@ import ch.njol.skript.lang.parser.ParserInstance
 import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.definition.Identifier
+import com.github.tanokun.addon.definition.dynamic.DynamicClass
+import com.github.tanokun.addon.definition.skript.dynamic.FunctionDefinitionInjector
+import com.github.tanokun.addon.definition.skript.dynamic.InitDefinitionInjector
 import com.github.tanokun.addon.intermediate.generator.fieldOf
 import com.github.tanokun.addon.intermediate.metadata.ModifierMetadata
-import com.github.tanokun.addon.definition.skript.dynamic.FunctionDefinitionMaker
-import com.github.tanokun.addon.definition.skript.dynamic.InitDefinitionInjector
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
+import com.github.tanokun.addon.lookup
 import org.bukkit.event.Event
-import java.lang.IllegalStateException
 import java.lang.invoke.MethodHandle
-import java.lang.invoke.MethodHandles
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
-
-val fieldGetterCache = mutableMapOf<Field, MethodHandle>()
-val lookup: MethodHandles.Lookup = MethodHandles.lookup()
 
 @Suppress("UNCHECKED_CAST")
 class GetTypedValueFieldExpression: SimpleExpression<Any>() {
@@ -30,7 +26,7 @@ class GetTypedValueFieldExpression: SimpleExpression<Any>() {
         init {
             Skript.registerExpression(
                 GetTypedValueFieldExpression::class.java, Any::class.java, ExpressionType.PROPERTY,
-                "%object%.%identifier%[.]"
+                "%object%.%*identifier%[.]"
             )
         }
     }
@@ -59,7 +55,7 @@ class GetTypedValueFieldExpression: SimpleExpression<Any>() {
         targetExpr = exprs[0] as Expression<Any>
 
         fieldName = (exprs[1] as Expression<Identifier>).getSingle(null) ?: let {
-            Skript.error("Field name is not specified. '${exprs[1]}'")
+            Skript.error("Field name is not specified. ${exprs[1]}")
             return false
         }
 
@@ -84,9 +80,7 @@ class GetTypedValueFieldExpression: SimpleExpression<Any>() {
             return false
         }
 
-        getterHandle = fieldGetterCache.computeIfAbsent(field) {
-            lookup.unreflectGetter(it)
-        }
+        getterHandle = lookup.unreflectGetter(field)
 
         return true
     }
@@ -95,7 +89,7 @@ class GetTypedValueFieldExpression: SimpleExpression<Any>() {
         val callerInInit = parser.getCurrentSections(InitDefinitionInjector::class.java).firstOrNull() ?: return false
         if (callerInInit.thisDynamicClass == type) return true
 
-        val callerInFunction = parser.getCurrentSections(FunctionDefinitionMaker::class.java).firstOrNull() ?: return false
+        val callerInFunction = parser.getCurrentSections(FunctionDefinitionInjector::class.java).firstOrNull() ?: return false
         return callerInFunction.thisDynamicClass == type
     }
 

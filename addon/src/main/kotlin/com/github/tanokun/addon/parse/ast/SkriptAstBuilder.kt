@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.parse
+package com.github.tanokun.addon.parse.ast
 
 import ch.njol.skript.ScriptLoader
 import ch.njol.skript.config.SectionNode
@@ -9,7 +9,6 @@ import ch.njol.skript.sections.SecLoop
 import com.github.tanokun.addon.analysis.ast.AstSection
 import com.github.tanokun.addon.analysis.ast.ElseIf
 import com.github.tanokun.addon.analysis.ast.SkriptAst
-import com.sun.org.apache.xerces.internal.impl.xs.opti.SchemaDOM.indent
 import java.lang.reflect.Field
 
 object SkriptAstBuilder {

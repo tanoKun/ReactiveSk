@@ -11,32 +11,41 @@ import com.github.tanokun.addon.analysis.ast.AstSection
 import com.github.tanokun.addon.analysis.ast.result.Severity.ERROR
 import com.github.tanokun.addon.analysis.ast.result.Severity.WARNING
 import com.github.tanokun.addon.analysis.section.LocalTypedVariableCapacityAnalyzer
-import com.github.tanokun.addon.analysis.section.init.InitSectionAnalyzer
+import com.github.tanokun.addon.analysis.section.function.FunctionReturnAnalyzer
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.dynamic.ClassDefinition
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
 import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
 import com.github.tanokun.addon.dynamicJavaClassLoader
 import com.github.tanokun.addon.intermediate.generator.INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY
-import com.github.tanokun.addon.intermediate.generator.INTERNAL_INIT_TRIGGER_SECTION
+import com.github.tanokun.addon.intermediate.generator.internalFunctionTriggerField
 import com.github.tanokun.addon.parse.ast.SkriptAstBuilder
 import com.github.tanokun.addon.runtime.skript.init.ResolveTypedValueFieldEffect
 import org.bukkit.event.Event
 
-class InitDefinitionInjector: Section() {
+/**
+ * class セクション内で function セクションを宣言し、Skript の TriggerItem 連結と格納を行います。
+ */
+class FunctionDefinitionInjector : Section() {
+
     companion object {
         init {
-            Skript.registerSection(InitDefinitionInjector::class.java, "init [<.+>]")
+            Skript.registerSection(FunctionDefinitionInjector::class.java, "function <.+>")
         }
     }
 
     lateinit var thisClassDefinition: ClassDefinition
         private set
 
-    lateinit var thisDynamicClass: Class<out DynamicClass>
+    lateinit var thisDynamicClass: Class<*>
+        private set
+
+    lateinit var functionName: String
+        private set
+
+    lateinit var returnType: Class<*>
         private set
 
     override fun init(
@@ -48,22 +57,30 @@ class InitDefinitionInjector: Section() {
         triggerItems: List<TriggerItem>,
     ): Boolean {
         val classDefinitionMaker = parser.currentSkriptEvent as? ClassDefinitionSkriptEvent ?: let {
-            Skript.error("'init' definition can only be used inside a 'class' section.")
+            Skript.error("'function' definition can only be used inside a 'class' section.")
             return false
         }
 
+        functionName = parseResult.expr.split(" ", limit = 3)[1].split("(", limit = 2)[0]
+        thisDynamicClass = classDefinitionMaker.dynamicClass ?: return true
         thisClassDefinition = classDefinitionMaker.dynamicClassDefinition ?: return false
-        thisDynamicClass = classDefinitionMaker.dynamicClass ?: return false
+
+        val functionDefinition = classDefinitionMaker.dynamicClassDefinition?.functions?.firstOrNull { it.name.identifier == functionName } ?: let {
+            Skript.error("Cannot find function '$functionName' in 'class' section.")
+            return false
+        }
+
+        returnType = functionDefinition.returnTypeName?.let { dynamicJavaClassLoader.getClassOrGenerateOrListFromAll(it, false) } ?: Void.TYPE
 
         val depth = sectionNode.getDepth()
         val topNode = sectionNode.getTopNode()
 
         TypedVariableResolver.declare(topNode, TypedVariableDeclaration(Identifier("this"), thisDynamicClass, false, depth))
 
-        thisClassDefinition.constructorParameters.forEach { param ->
+        functionDefinition.parameters.forEach { param ->
             val variableName = param.parameterName
             val resolvedType = dynamicJavaClassLoader.getClassOrListOrNullFromAll(param.typeName, param.isArray) ?: let {
-                Skript.error("Cannot resolve type '${param.typeName}' for '$variableName' in class '${thisClassDefinition.className}' init.")
+                Skript.error("Cannot resolve type '${param.typeName}' for '$variableName' in function '${functionDefinition.name}'.")
                 return false
             }
 
@@ -73,10 +90,10 @@ class InitDefinitionInjector: Section() {
         parser.currentSections.add(this)
 
         val (triggerItem, astRoot) = SkriptAstBuilder.buildFromSectionNode(sectionNode)
-        thisDynamicClass.getField(INTERNAL_INIT_TRIGGER_SECTION).set(null, triggerItem)
+        thisDynamicClass.getField(internalFunctionTriggerField(functionName)).set(null, triggerItem)
 
-        val analyzer = InitSectionAnalyzer(astRoot, thisClassDefinition.className, thisClassDefinition.getRequiredInitializationFields())
-        val (problems, _) = analyzer.analyze()
+        val returnAnalyzer = FunctionReturnAnalyzer(astRoot, Identifier(functionName), thisClassDefinition.className, functionDefinition.returnTypeName != null)
+        val (problems, _) = returnAnalyzer.analyze()
 
         problems.forEach {
             val triggerItem = (it.location as? AstSection.Line)?.item
@@ -94,19 +111,14 @@ class InitDefinitionInjector: Section() {
         val localsAnalyzer = LocalTypedVariableCapacityAnalyzer(astRoot)
         val (_, localCapacity) = localsAnalyzer.analyze()
 
-        thisDynamicClass.getField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY).set(null, localCapacity + 1 + thisClassDefinition.constructorParameters.size)
+        thisDynamicClass.getField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY).set(null, localCapacity + 1 + functionDefinition.parameters.size)
 
         parser.currentSections.remove(this)
-
 
         return true
     }
 
     override fun walk(e: Event?): TriggerItem? { return null }
 
-    override fun toString(e: Event?, debug: Boolean): String? = "init definition injector"
-
-    override fun equals(other: Any?): Boolean = other === this
-
-    override fun hashCode(): Int = javaClass.hashCode()
+    override fun toString(e: Event?, debug: Boolean): String = "function definition section"
 }

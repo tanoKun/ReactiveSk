@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.definition.skript.variable
+package com.github.tanokun.addon.definition.variable
 
 import ch.njol.skript.config.Node
 import ch.njol.skript.config.SectionNode
@@ -34,19 +34,19 @@ fun Node.getTopNode(): Node {
  *
  * @return ルートノードまでのスコープ数
  */
-fun Node.getScopeCount(): Int {
+fun Node.getDepth(): Int {
     var current: Node = this
-    var scopeCount = 0
+    var depth = 0
 
     val correction = if (this is SectionNode) 0 else 1
 
     while (current.parent != null) {
         if (current.shouldTerminateTraversal) break
         current.parent?.let {
-            scopeCount++
+            depth++
             current = it
         }
     }
 
-    return scopeCount - correction
+    return depth - correction
 }

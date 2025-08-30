@@ -12,4 +12,6 @@ class NonSuspendRuntimeFunctionMediator: RuntimeFunctionMediator() {
     }
 
     override suspend fun getReturn(): Any? = returns
+
+    fun nonSuspendGetReturn(): Any? = returns
 }

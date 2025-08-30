@@ -1,14 +1,15 @@
 package com.github.tanokun.addon.clazz.definition.parse
 
 import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.intermediate.generator.ByteBuddyGenerator
 import com.github.tanokun.addon.intermediate.DynamicClassDefinitionLoader
 import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
+import com.github.tanokun.addon.intermediate.generator.ByteBuddyGenerator
 import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
-import io.mockk.mockk
+import com.github.tanokun.addon.runtime.variable.VariableFrames
+import org.bukkit.event.Event
 import java.io.File
-import kotlin.jvm.java
 import kotlin.test.Test
+
 
 class DynamicClassParserTest {
     val dynamicClassDefinitionLoader = DynamicClassDefinitionLoader()
@@ -19,7 +20,7 @@ class DynamicClassParserTest {
     )
 
     @Test
-    fun test() {
+    fun test()  {
         val scriptDir = File("test-scripts")
         scriptDir.mkdirs()
         File(scriptDir, "Character.sk").writeText("""
@@ -30,15 +31,9 @@ class Person[val name: PersonName, val age: PersonAge, val job: PersonJob]:
 class PersonName[val name: string]:    
 class PersonAge[val age: long]:
 class PersonJob[val jobName: string]:
-class Test[private val test: array of string, test2: string, var test3: string]:
-    field:
-        var test4: string
-        val test6: string
-    init throws [ERROR]:
-        send "%{_test}%" to console
-        
-    function test(testParam: string):: string throws [ERROR]:
-        send "%{_test}%" to console
+class Counter[var count: long]:
+    function increment(count: long):
+        [this].count -> [count] + 1
     """.trimIndent())
 
         dynamicClassDefinitionLoader.loadAllClassesFrom(scriptDir)
@@ -46,17 +41,12 @@ class Test[private val test: array of string, test2: string, var test3: string]:
 
         println("--- Triggering instance creation ---")
 
-        classLoader.getDynamicClassOrGenerate(Identifier("Test")).constructors[1].newInstance(mockk<RuntimeConstructorMediator>(), arrayListOf("test1"))
-        classLoader.getDynamicClassOrGenerate(Identifier("Person")).constructors[1].newInstance(mockk<RuntimeConstructorMediator>(), arrayListOf("test1"))
+        val test: Event = RuntimeConstructorMediator()
 
-      //  val playerInstance = classLoader.createInstance(Identifier("Person"), mockk<RuntimeConstructorMediator>(), "aaaa")
-/*
+        classLoader.getDynamicClassOrGenerate(Identifier("Counter")).constructors[1].newInstance(test, 10L)
 
-        playerInstance::class.java
-            .getMethod("test", RuntimeFunctionMediator::class.java, String::class.java, ArrayList::class.java)
-            .invoke(playerInstance, NonSuspendRuntimeFunctionMediator(), "test1", arrayListOf("test2"))
-
-*/
+        VariableFrames.beginFrame(test, 1)
+        VariableFrames.set(test, 0, "aaaa")
 
         scriptDir.deleteRecursively()
     }

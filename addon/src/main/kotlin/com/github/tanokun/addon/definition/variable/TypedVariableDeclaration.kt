@@ -6,9 +6,6 @@ data class TypedVariableDeclaration(
     val variableName: Identifier,
     val type: Class<*>,
     val isMutable: Boolean,
-    val scopeCount: Int,
-) {
-    init {
-        if (scopeCount < 0) throw IllegalArgumentException("Scope must be non-negative.")
-    }
-}
+    val depth: Int,       // 宣言されたスコープ深度（0 起点）
+    val index: Int = -1,       // 解析時に採番される globalIndex（未採番は -1）
+)
