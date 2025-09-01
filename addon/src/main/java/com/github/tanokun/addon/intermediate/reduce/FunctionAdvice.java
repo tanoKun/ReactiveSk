@@ -2,14 +2,18 @@ package com.github.tanokun.addon.intermediate.reduce;
 
 import ch.njol.skript.lang.TriggerItem;
 import net.bytebuddy.asm.Advice;
+import org.bukkit.event.Event;
 
 import static com.github.tanokun.addon.intermediate.generator.ClassBodyMetadataKt.INTERNAL_FUNCTION_TRIGGER_PREFIX;
 
 public class FunctionAdvice {
-    @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
-    public static boolean enter(
-            @Advice.FieldValue(INTERNAL_FUNCTION_TRIGGER_PREFIX) TriggerItem item
+    @Advice.OnMethodExit
+    public static void exit(
+            @Advice.FieldValue(INTERNAL_FUNCTION_TRIGGER_PREFIX) TriggerItem item,
+            @Advice.Argument(0) Object event
     ) {
-        return item == null;
+        if (item != null) {
+            TriggerItem.walk(item, (Event) event);
+        }
     }
 }
