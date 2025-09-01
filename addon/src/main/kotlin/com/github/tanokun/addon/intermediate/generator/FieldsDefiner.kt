@@ -1,65 +1,158 @@
 package com.github.tanokun.addon.intermediate.generator
 
 import com.github.tanokun.addon.definition.dynamic.ClassDefinition
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
-import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
-import com.github.tanokun.addon.intermediate.integrity.SetArrayListAdvice
-import com.github.tanokun.addon.intermediate.integrity.SetArrayListAdvice.FixedArrayComponentType
+import com.github.tanokun.addon.intermediate.generator.helper.SetListHelper
+import com.github.tanokun.addon.intermediate.integrity.FieldName
+import com.github.tanokun.addon.intermediate.integrity.SetAndNotifyValueAdvice
+import com.github.tanokun.addon.intermediate.integrity.SetValueAdvice
 import com.github.tanokun.addon.intermediate.metadata.ModifierMetadata
-import com.github.tanokun.addon.intermediate.metadata.MutableFieldMetadata
+import com.github.tanokun.addon.module.ModuleManager
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.dynamic.DynamicType
+import net.bytebuddy.implementation.FieldAccessor
+import net.bytebuddy.implementation.Implementation
+import net.bytebuddy.implementation.MethodCall
 import net.bytebuddy.implementation.StubMethod
 import net.bytebuddy.implementation.bytecode.assign.Assigner
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
-/**
- * すべてのフィールド(ユーザ定義フィールド)を定義
- */
 class FieldsDefiner(
-    private val creator: DynamicJavaClassLoader,
+    private val moduleManager: ModuleManager
 ) {
     fun defineFields(
-        builder: DynamicType.Builder<out DynamicClass>,
+        builder: DynamicType.Builder<*>,
         classDefinition: ClassDefinition,
-    ): DynamicType.Builder<out DynamicClass> {
+    ): DynamicType.Builder<*> {
         var current = builder
 
         classDefinition.fields.forEach { field ->
-            val fieldType = creator.getClassOrGenerateOrListFromAll(field.typeName, field.isArray)
+            val name = field.fieldName.identifier
+            val fieldType = moduleManager.resolveTypeDescription(field.typeName, field.isArray)
+            val actualType = moduleManager.resolveTypeDescription(field.typeName, false)
 
-            current = current
-                .defineField(fieldOf(field.fieldName.identifier), fieldType, Modifier.PUBLIC)
-                .annotateField(ModifierMetadata(field.modifier))
-                .let { if (field.isProperty()) it.annotateField(MutableFieldMetadata()) else it }
+            current = defineBaseField(current, name, fieldType, field.modifiers)
 
-            if (!field.isArray) return@forEach
+            val advice = buildAdvice(name, actualType)
 
-            val actualType = creator.getClassOrGenerateOrListFromAll(field.typeName, false)
-
-            val methodName = internalArrayListSetterOf(field.fieldName.identifier)
-
-            val fieldMapping = Advice.OffsetMapping.ForField.Unresolved.WithImplicitType(
-                TypeDescription.ForLoadedType.of(fieldType).asGenericType(),
-                false,
-                Assigner.Typing.DYNAMIC,
-                fieldOf(field.fieldName.identifier),
-            )
-
-            current = current
-                .defineMethod(methodName, Void.TYPE, Modifier.PUBLIC)
-                .withParameters(ArrayList::class.java)
-                .intercept(
-                    Advice.withCustomMapping()
-                        .bind(Advice.OffsetMapping.Factory.Simple(Advice.FieldValue::class.java, fieldMapping))
-                        .bind(FixedArrayComponentType::class.java, actualType)
-                        .to(SetArrayListAdvice::class.java)
-                        .wrap(StubMethod.INSTANCE)
-                )
-                .annotateMethod(ModifierMetadata(field.modifier))
+            current = if (!field.isArray) {
+                defineNonArraySetter(current, name, fieldType, field.isFactor(), advice)
+            } else {
+                defineArraySetters(current, name, actualType, field.isFactor())
+            }
         }
 
         return current
+    }
+
+    private fun defineBaseField(
+        builder: DynamicType.Builder<*>,
+        name: String,
+        fieldType: TypeDescription,
+        modifiers: Int
+    ): DynamicType.Builder<*> {
+        return builder
+            .defineField(fieldOf(name), fieldType, Modifier.PUBLIC)
+            .annotateField(ModifierMetadata(modifiers))
+    }
+
+    private fun buildAdvice(
+        name: String,
+        actualType: TypeDescription
+    ): Advice.WithCustomMapping {
+        val fieldMapping = Advice.OffsetMapping.ForField.Unresolved.WithImplicitType(
+            actualType.asGenericType(),
+            false,
+            Assigner.Typing.DYNAMIC,
+            fieldOf(name),
+        )
+        return Advice.withCustomMapping()
+            .bind(Advice.OffsetMapping.Factory.Simple(Advice.FieldValue::class.java, fieldMapping))
+    }
+
+    private fun defineNonArraySetter(
+        builder: DynamicType.Builder<*>,
+        name: String,
+        fieldType: TypeDescription,
+        isFactor: Boolean,
+        advice: Advice.WithCustomMapping,
+    ): DynamicType.Builder<*> {
+        val setterName = internalSetterOf(name)
+
+        val adviceProxy = if (isFactor)
+            advice.bind(FieldName::class.java, name).to(SetAndNotifyValueAdvice::class.java)
+        else
+            advice.to(SetValueAdvice::class.java)
+
+        return builder
+            .defineMethod(setterName, Void.TYPE, Modifier.PUBLIC)
+            .withParameters(fieldType)
+            .intercept(adviceProxy.wrap(StubMethod.INSTANCE))
+    }
+
+    private fun defineArraySetters(
+        builder: DynamicType.Builder<*>,
+        name: String,
+        actualType: TypeDescription,
+        isFactor: Boolean
+    ): DynamicType.Builder<*> {
+        val setterName = internalArrayListSetterOf(name)
+
+        val checkTypeImpl = buildCheckTypeImpl(name, actualType)
+        val notifyImpl = if (isFactor) buildNotifyImpl(name, checkTypeImpl) else checkTypeImpl
+
+        val result = builder
+            .defineMethod(setterName, Void.TYPE, Modifier.PUBLIC)
+            .withParameters(java.util.ArrayList::class.java)
+            .intercept(notifyImpl)
+            .let {
+                if (isFactor)
+                    it.defineMethod(internalArrayListSetterWithoutNotificationOf(name), Void.TYPE, Modifier.PUBLIC)
+                        .withParameters(ArrayList::class.java)
+                        .intercept(checkTypeImpl)
+                else it
+            }
+
+        return result
+    }
+
+    private fun buildCheckTypeImpl(
+        name: String,
+        actualType: TypeDescription
+    ): Implementation.Composable {
+        return MethodCall.invoke(CHECK_TYPES_METHOD)
+            .withArgument(0)
+            .with(actualType)
+            .andThen(FieldAccessor.ofField(fieldOf(name)).setsArgumentAt(0))
+    }
+
+    private fun buildNotifyImpl(
+        name: String,
+        base: Implementation.Composable
+    ): Implementation.Composable {
+        return base.andThen(
+            MethodCall.invoke(NOTIFY_METHOD)
+                .withThis()
+                .withField(fieldOf(name))
+                .withArgument(0)
+                .with(name)
+        )
+    }
+
+    companion object {
+        private val CHECK_TYPES_METHOD: Method = SetListHelper::class.java.getMethod(
+            "checkTypes",
+            java.util.ArrayList::class.java,
+            Class::class.java
+        )
+
+        private val NOTIFY_METHOD: Method = SetListHelper::class.java.getMethod(
+            "notify",
+            Any::class.java,
+            java.util.ArrayList::class.java,
+            java.util.ArrayList::class.java,
+            String::class.java
+        )
     }
 }

@@ -1,10 +1,10 @@
-package com.github.tanokun.addon.parse
+package com.github.tanokun.addon.intermediate.parse
 
 import com.github.tanokun.addon.SkriptClassDefinitionBaseVisitor
 import com.github.tanokun.addon.SkriptClassDefinitionParser
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.dynamic.ClassDefinition
-import com.github.tanokun.addon.definition.dynamic.DeclarationModifiers
+import com.github.tanokun.addon.definition.dynamic.PropertyModifiers
 import com.github.tanokun.addon.definition.dynamic.constructor.ConstructorParameter
 import com.github.tanokun.addon.definition.dynamic.constructor.InitSection
 import com.github.tanokun.addon.definition.dynamic.error.ThrowType
@@ -58,16 +58,15 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
     }
 
     override fun visitConstructorParam(ctx: SkriptClassDefinitionParser.ConstructorParamContext): ConstructorParameter {
-        val modifier = parseModifier(ctx.accessModifiers())
-        val declarationModifier = visitDeclaration(ctx.declaration())
-        val paramDef = visit(ctx.arg()) as ParameterDefinition
+        val modifiers = parseModifier(ctx.accessModifiers())
+        val declarationModifiers = visitDeclaration(ctx.declaration())
+        val paramDef = visitArg(ctx.arg())
 
         return ConstructorParameter(
             parameterName = paramDef.parameterName,
             typeName = paramDef.typeName,
             isArray = paramDef.isArray,
-            declarationModifier = declarationModifier,
-            modifier = modifier
+            modifiers = modifiers or declarationModifiers,
         )
     }
 
@@ -76,16 +75,15 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
     }
 
     override fun visitFieldDef(ctx: SkriptClassDefinitionParser.FieldDefContext): FieldDefinition {
-        val modifier = parseModifier(ctx.accessModifiers())
-        val declarationModifier = ctx.declaration()?.let(::visitDeclaration) ?: 0
-        val paramDef = visit(ctx.arg()) as ParameterDefinition
+        val modifiers = parseModifier(ctx.accessModifiers())
+        val declarationModifiers = ctx.declaration()?.let(::visitDeclaration) ?: 0
+        val paramDef = visitArg(ctx.arg())
 
         return FieldDefinition(
             fieldName = paramDef.parameterName,
             typeName = paramDef.typeName,
-            declarationModifier = declarationModifier,
             isArray = paramDef.isArray,
-            modifier = modifier
+            modifiers = modifiers or declarationModifiers,
         )
     }
 
@@ -133,10 +131,9 @@ class DynamicClassParserVisitor : SkriptClassDefinitionBaseVisitor<Any>() {
     override fun visitDeclaration(ctx: SkriptClassDefinitionParser.DeclarationContext?): Int {
         if (ctx == null) return 0
 
-        val isImmutable = if (ctx.VAL() != null) DeclarationModifiers.IMMUTABLE else 0
-        val isMutable = if (ctx.VAR() != null) DeclarationModifiers.MUTABLE else 0
-        val isFactor = if (ctx.FACTOR() != null) DeclarationModifiers.FACTOR else 0
+        val isMutable = if (ctx.VAR() != null) PropertyModifiers.MUTABLE else 0
+        val isFactor = if (ctx.FACTOR() != null) PropertyModifiers.MUTABLE or PropertyModifiers.FACTOR else 0
 
-        return isImmutable or isMutable or isFactor
+        return isMutable or isFactor
     }
 }

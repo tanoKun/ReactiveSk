@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.parse
+package com.github.tanokun.addon.intermediate.parse
 
 import com.github.tanokun.addon.SkriptClassDefinitionLexer
 import com.github.tanokun.addon.SkriptClassDefinitionParser

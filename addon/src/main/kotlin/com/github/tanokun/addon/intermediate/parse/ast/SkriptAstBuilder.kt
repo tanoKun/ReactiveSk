@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.parse.ast
+package com.github.tanokun.addon.intermediate.parse.ast
 
 import ch.njol.skript.ScriptLoader
 import ch.njol.skript.config.SectionNode
