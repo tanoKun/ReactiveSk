@@ -16,7 +16,7 @@ import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.runtime.variable.VariableFrames
+import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
 import org.bukkit.event.Event
 
 @Suppress("UNCHECKED_CAST")
@@ -24,10 +24,10 @@ class LocalTypedVariableDeclarationEffect: Effect() {
     companion object {
         init {
             Skript.registerEffect(LocalTypedVariableDeclarationEffect::class.java,
-                "val %identifier% [\\(%-*classinfo%\\)] \\:= %object%",
-                "var %identifier% [\\(%-*classinfo%\\)] \\:= %object%",
-                "val %identifier% \\(%-*classinfo%\\)",
-                "var %identifier% \\(%-*classinfo%\\)",
+                "val %identifier% [\\(%-classinfo%\\)] \\:= %object%",
+                "var %identifier% [\\(%-classinfo%\\)] \\:= %object%",
+                "val %identifier% \\(%-classinfo%\\)",
+                "var %identifier% \\(%-classinfo%\\)",
             )
         }
     }
@@ -129,16 +129,14 @@ class LocalTypedVariableDeclarationEffect: Effect() {
                 if (variableCapacity == -1) (TypedVariableResolver.getIndexInNode(topNode) ?: 0) + 1
                 else variableCapacity
 
-            VariableFrames.beginFrame(e, variableCapacity)
+            AmbiguousVariableFrames.beginFrame(e, variableCapacity)
         }
 
         definitionExpr?.let {
             val value = it.getSingle(e)
+                ?: throw NullPointerException("Null value '$definitionExpr' is not allowed for variable '${declaration.variableName}'.")
 
-            if (value == null)
-                throw NullPointerException("Null value '$definitionExpr' is not allowed for variable '${declaration.variableName}'.")
-
-            VariableFrames.set(e, declaration.index, value)
+            AmbiguousVariableFrames.set(e, declaration.index, value)
         }
     }
 

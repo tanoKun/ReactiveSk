@@ -14,15 +14,14 @@ import com.github.tanokun.addon.analysis.section.LocalTypedVariableCapacityAnaly
 import com.github.tanokun.addon.analysis.section.init.InitSectionAnalyzer
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.dynamic.ClassDefinition
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
 import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.dynamicJavaClassLoader
 import com.github.tanokun.addon.intermediate.generator.INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY
 import com.github.tanokun.addon.intermediate.generator.INTERNAL_INIT_TRIGGER_SECTION
-import com.github.tanokun.addon.parse.ast.SkriptAstBuilder
+import com.github.tanokun.addon.intermediate.parse.ast.SkriptAstBuilder
+import com.github.tanokun.addon.moduleManager
 import com.github.tanokun.addon.runtime.skript.init.ResolveTypedValueFieldEffect
 import org.bukkit.event.Event
 
@@ -36,7 +35,7 @@ class InitDefinitionInjector: Section() {
     lateinit var thisClassDefinition: ClassDefinition
         private set
 
-    lateinit var thisDynamicClass: Class<out DynamicClass>
+    lateinit var thisDynamicClass: Class<*>
         private set
 
     override fun init(
@@ -62,7 +61,7 @@ class InitDefinitionInjector: Section() {
 
         thisClassDefinition.constructorParameters.forEach { param ->
             val variableName = param.parameterName
-            val resolvedType = dynamicJavaClassLoader.getClassOrListOrNullFromAll(param.typeName, param.isArray) ?: let {
+            val resolvedType = moduleManager.getLoadedClass(param.typeName) ?: let {
                 Skript.error("Cannot resolve type '${param.typeName}' for '$variableName' in class '${thisClassDefinition.className}' init.")
                 return false
             }

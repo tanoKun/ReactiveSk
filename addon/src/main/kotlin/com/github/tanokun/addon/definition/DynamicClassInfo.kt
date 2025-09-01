@@ -7,4 +7,4 @@ import com.github.tanokun.addon.definition.dynamic.DynamicClass
 /**
  * 動的クラスの [ClassInfo] をラップします。
  */
-data class DynamicClassInfo(val classDefinition: ClassDefinition, val classInfo: Class<out DynamicClass>)
+data class DynamicClassInfo(val classDefinition: ClassDefinition, val clazz: Class<out DynamicClass>)

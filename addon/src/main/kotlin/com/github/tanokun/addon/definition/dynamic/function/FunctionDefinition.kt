@@ -7,6 +7,6 @@ data class FunctionDefinition(
     val name: Identifier,
     val parameters: List<ParameterDefinition>,
     val returnTypeName: Identifier?,
-    val modifier: Int,
+    val modifiers: Int,
     val throwsErrors: List<ThrowType>
 )

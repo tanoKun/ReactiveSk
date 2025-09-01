@@ -6,6 +6,7 @@ import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.Section
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.TriggerItem
+import ch.njol.skript.registrations.Classes
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.analysis.ast.AstSection
 import com.github.tanokun.addon.analysis.ast.result.Severity.ERROR
@@ -13,17 +14,18 @@ import com.github.tanokun.addon.analysis.ast.result.Severity.WARNING
 import com.github.tanokun.addon.analysis.section.LocalTypedVariableCapacityAnalyzer
 import com.github.tanokun.addon.analysis.section.function.FunctionReturnAnalyzer
 import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.dynamicJavaClassLoader
-import com.github.tanokun.addon.intermediate.generator.INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY
+import com.github.tanokun.addon.intermediate.generator.internalFunctionLocalsCapacityFieldOf
+import com.github.tanokun.addon.intermediate.generator.internalFunctionNameOf
 import com.github.tanokun.addon.intermediate.generator.internalFunctionTriggerField
-import com.github.tanokun.addon.parse.ast.SkriptAstBuilder
+import com.github.tanokun.addon.intermediate.parse.ast.SkriptAstBuilder
+import com.github.tanokun.addon.moduleManager
 import com.github.tanokun.addon.runtime.skript.init.ResolveTypedValueFieldEffect
 import org.bukkit.event.Event
+import java.lang.reflect.Method
 
 /**
  * class セクション内で function セクションを宣言し、Skript の TriggerItem 連結と格納を行います。
@@ -32,21 +34,17 @@ class FunctionDefinitionInjector : Section() {
 
     companion object {
         init {
-            Skript.registerSection(FunctionDefinitionInjector::class.java, "function <.+>")
+            Skript.registerSection(FunctionDefinitionInjector::class.java,
+                "function <.+>",
+                "private function <.+>"
+            )
         }
     }
-
-    lateinit var thisClassDefinition: ClassDefinition
-        private set
 
     lateinit var thisDynamicClass: Class<*>
         private set
 
-    lateinit var functionName: String
-        private set
-
-    lateinit var returnType: Class<*>
-        private set
+    lateinit var method: Method
 
     override fun init(
         exprs: Array<out Expression<*>>,
@@ -61,16 +59,16 @@ class FunctionDefinitionInjector : Section() {
             return false
         }
 
-        functionName = parseResult.expr.split(" ", limit = 3)[1].split("(", limit = 2)[0]
+        val functionName = parseResult.expr.split(" ", limit = 3)[matchedPattern + 1].split("(", limit = 2)[0]
+        val thisClassDefinition = classDefinitionMaker.dynamicClassDefinition ?: return false
         thisDynamicClass = classDefinitionMaker.dynamicClass ?: return true
-        thisClassDefinition = classDefinitionMaker.dynamicClassDefinition ?: return false
 
         val functionDefinition = classDefinitionMaker.dynamicClassDefinition?.functions?.firstOrNull { it.name.identifier == functionName } ?: let {
             Skript.error("Cannot find function '$functionName' in 'class' section.")
             return false
         }
 
-        returnType = functionDefinition.returnTypeName?.let { dynamicJavaClassLoader.getClassOrGenerateOrListFromAll(it, false) } ?: Void.TYPE
+        method = thisDynamicClass.methods.first { it.name == internalFunctionNameOf(functionName) }
 
         val depth = sectionNode.getDepth()
         val topNode = sectionNode.getTopNode()
@@ -79,7 +77,7 @@ class FunctionDefinitionInjector : Section() {
 
         functionDefinition.parameters.forEach { param ->
             val variableName = param.parameterName
-            val resolvedType = dynamicJavaClassLoader.getClassOrListOrNullFromAll(param.typeName, param.isArray) ?: let {
+            val resolvedType = moduleManager.getLoadedClass(param.typeName) ?: Classes.getClassInfoNoError(param.typeName.identifier)?.c ?: let {
                 Skript.error("Cannot resolve type '${param.typeName}' for '$variableName' in function '${functionDefinition.name}'.")
                 return false
             }
@@ -111,7 +109,7 @@ class FunctionDefinitionInjector : Section() {
         val localsAnalyzer = LocalTypedVariableCapacityAnalyzer(astRoot)
         val (_, localCapacity) = localsAnalyzer.analyze()
 
-        thisDynamicClass.getField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY).set(null, localCapacity + 1 + functionDefinition.parameters.size)
+        thisDynamicClass.getField(internalFunctionLocalsCapacityFieldOf(functionName)).set(null, localCapacity + 1 + functionDefinition.parameters.size)
 
         parser.currentSections.remove(this)
 

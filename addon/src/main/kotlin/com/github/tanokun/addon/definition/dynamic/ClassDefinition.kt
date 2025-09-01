@@ -14,7 +14,6 @@ data class ClassDefinition(
     val initSection: InitSection
 ) {
 
-
     /**
      * 初期化が必要なフィールドのリストを取得します。
      * コンストラクタパラメータとして宣言されていないフィールドのみを返します。
@@ -22,4 +21,19 @@ data class ClassDefinition(
      * @return 初期化が必要なフィールドのリスト
      */
     fun getRequiredInitializationFields() = fields - constructorParameters.filter { it.isProperty() }.map { it.toFieldDefinition() }
+
+    fun getAllUsedTypes(): Set<Identifier> {
+        val types = mutableSetOf<Identifier>()
+
+        constructorParameters.forEach { types.add(it.typeName) }
+
+        fields.forEach { types.add(it.typeName) }
+
+        functions.forEach { func ->
+            func.returnTypeName?.let { types.add(it) }
+            func.parameters.forEach { types.add(it.typeName) }
+        }
+
+        return types
+    }
 }

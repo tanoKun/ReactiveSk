@@ -4,12 +4,10 @@ import ch.njol.skript.Skript
 import ch.njol.skript.lang.Literal
 import ch.njol.skript.lang.SkriptEvent
 import ch.njol.skript.lang.SkriptParser
-import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.dynamicClassDefinitionLoader
+import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.skript.maker.ClassDefinitionEventMaker
-import com.github.tanokun.addon.dynamicJavaClassLoader
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
+import com.github.tanokun.addon.moduleManager
 import org.bukkit.event.Event
 
 /**
@@ -21,7 +19,7 @@ class ClassDefinitionSkriptEvent : SkriptEvent() {
     var dynamicClassDefinition: ClassDefinition? = null
         private set
 
-    var dynamicClass: Class<out DynamicClass>? = null
+    var dynamicClass: Class<*>? = null
         private set
 
     companion object {
@@ -43,8 +41,8 @@ class ClassDefinitionSkriptEvent : SkriptEvent() {
         val className = parseResult.expr.split(" ", limit = 3)[1].split("[", limit = 2)[0]
         val classNameIdentifier = Identifier(className)
 
-        dynamicClassDefinition = dynamicClassDefinitionLoader.getClassDefinition(classNameIdentifier)
-        dynamicClass = dynamicJavaClassLoader.getDynamicClassOrGenerate(classNameIdentifier)
+        dynamicClassDefinition = moduleManager.definitionLoader.getClassDefinition(classNameIdentifier)
+        dynamicClass = moduleManager.getLoadedClass(classNameIdentifier) ?: throw IllegalStateException("Cannot find class '$classNameIdentifier'.")
 
         return true
     }

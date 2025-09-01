@@ -77,6 +77,11 @@ object TypedVariableResolver {
 
     fun getDeclarationInScopeChain(top: Node, currentDepth: Int, variableName: Identifier): TypedVariableDeclaration? {
         val table = tables[top] ?: return null
+
+        if (variableName == Identifier("name")) {
+            println("${table.byDepth[currentDepth]} - ${getNowSectionId(top, depth = currentDepth)}")
+        }
+
         for (d in currentDepth downTo 0) {
             val sid = getNowSectionId(top, d)
             val found = table.byDepth[d]?.get(sid)?.get(variableName)
@@ -87,7 +92,7 @@ object TypedVariableResolver {
         return null
     }
 
-    fun getIndexInNode(node: Node): Int? = indexByTopCache.getOrDefault(node, 1) - 1
+    fun getIndexInNode(node: Node): Int = indexByTopCache.getOrDefault(node, 1) - 1
 
     private fun ensureSectionTable(
         top: Node,
