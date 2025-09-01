@@ -4,14 +4,15 @@ import ch.njol.skript.Skript
 import ch.njol.skript.SkriptAddon
 import ch.njol.skript.classes.ClassInfo
 import ch.njol.skript.registrations.Classes
-import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.dynamic.DynamicClass
 import com.github.tanokun.addon.module.ModuleManager
 import com.github.tanokun.addon.runtime.skript.serializer.DynamicInstanceSerializer
-import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import org.bukkit.plugin.java.JavaPlugin
 
 lateinit var coroutineScope: CoroutineScope private set
@@ -34,7 +35,7 @@ class ReactiveSkAddon : JavaPlugin() {
     override fun onEnable() {
         plugin = this
 
-        val exceptionHandler = CoroutineExceptionHandler { context, throwable ->
+        val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
             logger.severe(throwable.stackTraceToString())
         }
         job = SupervisorJob()
@@ -60,13 +61,6 @@ class ReactiveSkAddon : JavaPlugin() {
         addon.loadClasses("com.github.tanokun.addon")
 
         logger.info("ReactiveSk Addon has been enabled successfully!")
-
-        launch {
-            while (true) {
-                delay(5000)
-                println(AmbiguousVariableFrames.frames.size)
-            }
-        }
     }
 
     override fun onDisable() {
