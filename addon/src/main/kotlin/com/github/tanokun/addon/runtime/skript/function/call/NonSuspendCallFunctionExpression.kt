@@ -17,7 +17,6 @@ class NonSuspendCallFunctionExpression : SimpleExpression<Any>() {
         init {
             Skript.registerExpression(
                 NonSuspendCallFunctionExpression::class.java, Any::class.java, ExpressionType.COMBINED,
-               // "%object%.%identifier%\\([%-objects%]\\)",
                 "call %*identifier% in %object% [with %-objects%]"
             )
         }
@@ -31,8 +30,8 @@ class NonSuspendCallFunctionExpression : SimpleExpression<Any>() {
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
-        val targetExprIndex = 1 //if (matchedPattern == 0) 0 else 1
-        val functionNameExprIndex = 0 //if (matchedPattern == 0) 1 else 0
+        val targetExprIndex = 1
+        val functionNameExprIndex = 0
 
         callFunction = NonSuspendCallFunction.load(exprs, targetExprIndex, functionNameExprIndex, parser) ?: return false
 
@@ -47,7 +46,7 @@ class NonSuspendCallFunctionExpression : SimpleExpression<Any>() {
         return if (returnValue != null) arrayOf(returnValue) else emptyArray()
     }
 
-    override fun toString(e: Event?, debug: Boolean): String? = "call function with ${callFunction.argumentExprs.map { it.toString(e, debug) }.reduceOrNull { acc, s -> "$acc, $s" }} in ${callFunction.targetExpr.toString(e, debug)}"
+    override fun toString(e: Event?, debug: Boolean): String = "call function with ${callFunction.argumentExprs.map { it.toString(e, debug) }.reduceOrNull { acc, s -> "$acc, $s" }} in ${callFunction.targetExpr.toString(e, debug)}"
 
     override fun isSingle(): Boolean = true
 
