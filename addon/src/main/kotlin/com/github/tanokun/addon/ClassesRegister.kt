@@ -31,7 +31,7 @@ object ClassesRegister {
                 override fun toString(o: Identifier, flags: Int): String = o.toString()
 
 
-                override fun toVariableNameString(o: Identifier): String? = variableNamePattern
+                override fun toVariableNameString(o: Identifier): String = variableNamePattern
 
                 val variableNamePattern: String
                     get() = "[_a-zA-Z][a-zA-Z0-9]*"
@@ -67,7 +67,7 @@ object ClassesRegister {
 
                 override fun toString(o: DynamicClassInfo, flags: Int): String = o.toString()
 
-                override fun toVariableNameString(o: DynamicClassInfo): String? = variableNamePattern
+                override fun toVariableNameString(o: DynamicClassInfo): String = variableNamePattern
 
                 val variableNamePattern: String
                     get() = "[_a-zA-Z][a-zA-Z0-9]*"
