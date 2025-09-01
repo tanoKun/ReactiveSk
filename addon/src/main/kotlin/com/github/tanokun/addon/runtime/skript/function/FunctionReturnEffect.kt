@@ -10,6 +10,7 @@ import ch.njol.skript.sections.SecWhile
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.definition.skript.dynamic.FunctionDefinitionInjector
+import com.github.tanokun.addon.intermediate.metadata.MethodMetadata
 import com.github.tanokun.addon.runtime.skript.function.call.mediator.RuntimeFunctionMediator
 import org.bukkit.event.Event
 
@@ -38,7 +39,7 @@ class FunctionReturnEffect : Effect() {
         }
 
         valueExpr = LiteralUtils.defendExpression(exprs[0])
-        returnType = injector.returnType
+        returnType = injector.method.getAnnotation(MethodMetadata::class.java).returnType.java
 
         if (returnType == Void.TYPE) {
             Skript.error("Cannot use 'fun return' in function '$returnType' that returns void.")
@@ -49,7 +50,6 @@ class FunctionReturnEffect : Effect() {
             Skript.error("Definition $valueExpr must be single.")
             return false
         }
-
 
         if (!returnType.isAssignableFrom(valueExpr.returnType)) {
             Skript.error("Cannot return $valueExpr because it's not type '${returnType.simpleName}' but '${valueExpr.returnType.simpleName}'.")

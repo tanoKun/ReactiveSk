@@ -98,6 +98,7 @@ tasks {
 
 bukkit {
     main = "com.github.tanokun.addon.ReactiveSkAddon"
+    name = "ReactiveSk"
 
     depend = listOf("Skript")
     version = "1.0.0"

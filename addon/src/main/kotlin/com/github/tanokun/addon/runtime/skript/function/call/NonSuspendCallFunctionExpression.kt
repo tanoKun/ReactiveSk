@@ -2,21 +2,13 @@ package com.github.tanokun.addon.runtime.skript.function.call
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Expression
-import ch.njol.skript.lang.ExpressionList
 import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
-import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.intermediate.generator.internalFunctionReturnTypeField
-import com.github.tanokun.addon.lookup
-import com.github.tanokun.addon.runtime.MethodHandleInvokerUtil
+import com.github.tanokun.addon.runtime.skript.function.call.NonSuspendCallFunction.callFunction
 import com.github.tanokun.addon.runtime.skript.function.call.mediator.NonSuspendRuntimeFunctionMediator
-import com.github.tanokun.addon.runtime.skript.function.call.mediator.RuntimeFunctionMediator
-import com.github.tanokun.addon.runtime.variable.VariableFrames
 import org.bukkit.event.Event
-import java.lang.invoke.MethodType
 
 @Suppress("UNCHECKED_CAST")
 class NonSuspendCallFunctionExpression : SimpleExpression<Any>() {
@@ -25,19 +17,12 @@ class NonSuspendCallFunctionExpression : SimpleExpression<Any>() {
         init {
             Skript.registerExpression(
                 NonSuspendCallFunctionExpression::class.java, Any::class.java, ExpressionType.COMBINED,
-               // "%object%.%identifier%\\([%-objects%]\\)",
                 "call %*identifier% in %object% [with %-objects%]"
             )
         }
     }
 
-    private lateinit var targetExpr: Expression<Any>
-
-    private lateinit var methodHandle: (Array<*>, Any, NonSuspendRuntimeFunctionMediator) -> Unit
-
-    private lateinit var argumentExprs: Array<Expression<Any>>
-
-    private lateinit var functionReturnType: Class<*>
+    private lateinit var callFunction: CallFunction
 
     override fun init(
         exprs: Array<out Expression<*>?>,
@@ -45,67 +30,25 @@ class NonSuspendCallFunctionExpression : SimpleExpression<Any>() {
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
-        val targetExprIndex = 1 //if (matchedPattern == 0) 0 else 1
-        val functionNameExprIndex = 0 //if (matchedPattern == 0) 1 else 0
+        val targetExprIndex = 1
+        val functionNameExprIndex = 0
 
-        targetExpr = LiteralUtils.defendExpression(exprs[targetExprIndex])
-
-        val funcName = (exprs[functionNameExprIndex] as Expression<Identifier>).getSingle(null) ?: let {
-            Skript.error("Function name is not specified. ${exprs[1]}")
-            return false
-        }
-
-        val argumentsExpr: Expression<Any> = LiteralUtils.defendExpression(exprs[2] ?: ExpressionList(arrayOf(), Any::class.java, false))
-
-        this.argumentExprs =
-            if (argumentsExpr is ExpressionList<*>)
-                (argumentsExpr as ExpressionList<Any>).expressions as Array<Expression<Any>>
-            else arrayOf(argumentsExpr)
-
-        val argumentTypes = argumentExprs.map(Expression<Any>::getReturnType).toTypedArray()
-        val calledClass = targetExpr.getReturnType()
-
-        try {
-            val methodHandle = lookup.findVirtual(
-                calledClass,
-                funcName.identifier,
-                MethodType.methodType(Void.TYPE, arrayOf(RuntimeFunctionMediator::class.java, *argumentTypes))
-            ).asType(MethodType.methodType(Void.TYPE, Array(argumentTypes.size + 2) { Any::class.java }))
-
-            this.methodHandle = MethodHandleInvokerUtil.buildFunction(argumentTypes.size, methodHandle)
-        } catch (_: NoSuchMethodException) {
-            Skript.error("Cannot find function '$funcName' in '${calledClass.simpleName}'.")
-            return false
-        }
-
-        functionReturnType = targetExpr.getReturnType().getField(internalFunctionReturnTypeField(funcName.identifier)).get(null) as Class<*>
+        callFunction = NonSuspendCallFunction.load(exprs, targetExprIndex, functionNameExprIndex, parser) ?: return false
 
         return true
     }
 
     override fun get(e: Event): Array<Any?> {
         val nonSuspendFunction = NonSuspendRuntimeFunctionMediator()
-        val target = targetExpr.getSingle(e) ?: throw IllegalStateException("Target is null.")
-
-        val n = argumentExprs.size
-        val args = arrayOfNulls<Any>(n)
-        for (i in 0 until n) { args[i] = argumentExprs[i].getSingle(e) }
-
-        try {
-            methodHandle(args, target, nonSuspendFunction)
-        } catch (e: Throwable) {
-            e.printStackTrace()
-        } finally {
-            VariableFrames.endFrame(nonSuspendFunction)
-        }
+        callFunction(e, callFunction, nonSuspendFunction)
 
         val returnValue = nonSuspendFunction.nonSuspendGetReturn()
         return if (returnValue != null) arrayOf(returnValue) else emptyArray()
     }
 
-    override fun toString(e: Event?, debug: Boolean): String? = "call function expression"
+    override fun toString(e: Event?, debug: Boolean): String = "call function with ${callFunction.argumentExprs.map { it.toString(e, debug) }.reduceOrNull { acc, s -> "$acc, $s" }} in ${callFunction.targetExpr.toString(e, debug)}"
 
     override fun isSingle(): Boolean = true
 
-    override fun getReturnType() = functionReturnType
+    override fun getReturnType() = callFunction.functionReturnType
 }

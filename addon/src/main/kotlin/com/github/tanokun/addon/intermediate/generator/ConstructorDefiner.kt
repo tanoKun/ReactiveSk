@@ -2,12 +2,12 @@ package com.github.tanokun.addon.intermediate.generator
 
 import ch.njol.skript.lang.TriggerItem
 import com.github.tanokun.addon.definition.dynamic.ClassDefinition
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
-import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
 import com.github.tanokun.addon.intermediate.reduce.InitAdvice
+import com.github.tanokun.addon.module.ModuleManager
 import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
-import com.github.tanokun.addon.runtime.variable.VariableFrames
+import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
 import net.bytebuddy.asm.Advice
+import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.dynamic.DynamicType
 import net.bytebuddy.implementation.FieldAccessor
 import net.bytebuddy.implementation.Implementation
@@ -57,7 +57,7 @@ import java.lang.reflect.Modifier
  * ```
  *
  * メソッド名や、フィールド名は実際と異なりますが、このようになります。
- * [VariableFrames] へのフレーム登録が行われていますが、注入される [Event] を基準にして
+ * [AmbiguousVariableFrames] へのフレーム登録が行われていますが、注入される [Event] を基準にして
  * 自身インスタンスを `index 0` とし、そこから`コンストラクタパラメーター`が連番されます。
  *
  * skript 側で解析したものを挿入する際、
@@ -65,32 +65,35 @@ import java.lang.reflect.Modifier
  *
  */
 class ConstructorDefiner(
-    private val creator: DynamicJavaClassLoader,
+    private val moduleManager: ModuleManager
 ) {
-    private val setVariableMethod = VariableFrames::class.java.getMethod("set", Event::class.java, Int::class.java, Any::class.java)
+    private val setVariableMethod = AmbiguousVariableFrames::class.java.getMethod("set", Any::class.java, Int::class.java, Any::class.java)
 
     fun defineConstructor(
-        builder: DynamicType.Builder<out DynamicClass>,
+        builder: DynamicType.Builder<*>,
         classDefinition: ClassDefinition,
-    ): DynamicType.Builder<out DynamicClass> {
+    ): DynamicType.Builder<*> {
         val ctorParams = classDefinition.constructorParameters
 
-        val paramTypes = arrayOf(
-            RuntimeConstructorMediator::class.java,
-            *ctorParams.map { creator.getClassOrGenerateOrListFromAll(it.typeName, it.isArray) }.toTypedArray()
+        val parameterTypes = arrayOf(
+            TypeDescription.ForLoadedType.of(RuntimeConstructorMediator::class.java),
+            *ctorParams
+                .map { moduleManager.resolveTypeDescription(it.typeName, it.isArray) }
+                .toTypedArray()
         )
 
         val beginFrameImpl: Implementation.Composable =
             MethodCall.invoke(Object::class.java.getDeclaredConstructor()).onSuper()
 
         val setProps = ctorParams.foldIndexed(beginFrameImpl) { index, acc, p ->
-            if (!p.isProperty) return@foldIndexed acc
+            if (!p.isProperty()) return@foldIndexed acc
 
             if (p.isArray) {
                 val setterName = internalArrayListSetterOf(p.parameterName.identifier)
                 acc.andThen(
                     MethodCall.invoke(named(setterName))
                         .withArgument(index + 1)
+                        .with(false)
                 )
             } else {
                 acc.andThen(
@@ -105,10 +108,10 @@ class ConstructorDefiner(
 
         return builder
             .defineConstructor(Modifier.PUBLIC)
-            .withParameters(*paramTypes)
+            .withParameters(*parameterTypes)
             .intercept(setProps)
             .defineMethod(INTERNAL_CONSTRUCTOR_PROXY, Void.TYPE, Modifier.PRIVATE)
-            .withParameters(*paramTypes)
+            .withParameters(*parameterTypes)
             .intercept(createConstructorProxyImplementation(classDefinition))
             .defineField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY, Int::class.java, Modifier.PUBLIC or Modifier.STATIC)
             .defineField(INTERNAL_INIT_TRIGGER_SECTION, TriggerItem::class.java, Modifier.PUBLIC or Modifier.STATIC)
@@ -117,7 +120,7 @@ class ConstructorDefiner(
     private fun createConstructorProxyImplementation(classDefinition: ClassDefinition): Implementation {
         val constructorParameters = classDefinition.constructorParameters
 
-        val beginFrameImpl: Implementation.Composable = MethodCall.invoke(VariableFrames::class.java.getMethod("beginFrame", Event::class.java, Int::class.java))
+        val beginFrameImpl: Implementation.Composable = MethodCall.invoke(AmbiguousVariableFrames::class.java.getMethod("beginFrame", Any::class.java, Int::class.java))
             .withArgument(0)
             .withField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY)
             .andThen(createSetTypedVariableImplementation(0) { it.withThis() })

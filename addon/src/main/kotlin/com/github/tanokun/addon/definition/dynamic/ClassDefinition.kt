@@ -14,12 +14,14 @@ data class ClassDefinition(
     val initSection: InitSection
 ) {
 
-
     /**
      * 初期化が必要なフィールドのリストを取得します。
      * コンストラクタパラメータとして宣言されていないフィールドのみを返します。
      *
      * @return 初期化が必要なフィールドのリスト
      */
-    fun getRequiredInitializationFields() = fields - constructorParameters.filter { it.isProperty }.map { it.toFieldDefinition() }
+    fun getRequiredInitializationFields() = fields - constructorParameters
+        .filter { it.isProperty() }
+        .map { it.toFieldDefinition() }
+        .toSet()
 }

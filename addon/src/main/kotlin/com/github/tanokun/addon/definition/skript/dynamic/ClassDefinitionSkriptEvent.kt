@@ -4,12 +4,16 @@ import ch.njol.skript.Skript
 import ch.njol.skript.lang.Literal
 import ch.njol.skript.lang.SkriptEvent
 import ch.njol.skript.lang.SkriptParser
-import com.github.tanokun.addon.definition.dynamic.ClassDefinition
+import ch.njol.skript.lang.parser.ParserInstance
+import com.github.tanokun.addon.analysis.ast.AbstractDataFlowAnalyzer
+import com.github.tanokun.addon.analysis.ast.AstSection
+import com.github.tanokun.addon.analysis.ast.result.Severity.ERROR
+import com.github.tanokun.addon.analysis.ast.result.Severity.WARNING
 import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.dynamicClassDefinitionLoader
+import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.skript.maker.ClassDefinitionEventMaker
-import com.github.tanokun.addon.dynamicJavaClassLoader
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
+import com.github.tanokun.addon.moduleManager
+import com.github.tanokun.addon.runtime.skript.init.ResolveTypedValueFieldEffect
 import org.bukkit.event.Event
 
 /**
@@ -21,7 +25,7 @@ class ClassDefinitionSkriptEvent : SkriptEvent() {
     var dynamicClassDefinition: ClassDefinition? = null
         private set
 
-    var dynamicClass: Class<out DynamicClass>? = null
+    var dynamicClass: Class<*>? = null
         private set
 
     companion object {
@@ -43,8 +47,8 @@ class ClassDefinitionSkriptEvent : SkriptEvent() {
         val className = parseResult.expr.split(" ", limit = 3)[1].split("[", limit = 2)[0]
         val classNameIdentifier = Identifier(className)
 
-        dynamicClassDefinition = dynamicClassDefinitionLoader.getClassDefinition(classNameIdentifier)
-        dynamicClass = dynamicJavaClassLoader.getDynamicClassOrGenerate(classNameIdentifier)
+        dynamicClassDefinition = moduleManager.definitionLoader.getClassDefinition(classNameIdentifier)
+        dynamicClass = moduleManager.getLoadedClass(classNameIdentifier) ?: throw IllegalStateException("Cannot find class '$classNameIdentifier'.")
 
         return true
     }
@@ -52,9 +56,26 @@ class ClassDefinitionSkriptEvent : SkriptEvent() {
 
     override fun check(e: Event?): Boolean = false
 
-    override fun toString(e: Event?, debug: Boolean): String? = "class definition event"
+    override fun toString(e: Event?, debug: Boolean): String = "class definition event"
 
     override fun hashCode(): Int = dynamicClassDefinition?.hashCode() ?: 0
 
     override fun equals(other: Any?): Boolean = this === other
+}
+
+fun <T: Any> analyzeSection(analyzer: AbstractDataFlowAnalyzer<T>, parser: ParserInstance) {
+    val (problems, _) = analyzer.analyze()
+
+    problems.forEach {
+        val triggerItem = (it.location as? AstSection.Line)?.item
+        val originNode = parser.node
+        if (triggerItem is ResolveTypedValueFieldEffect) parser.node = triggerItem.parseNode
+
+        when (it.severity) {
+            ERROR -> Skript.error(it.message)
+            WARNING -> Skript.warning(it.message)
+        }
+
+        parser.node = originNode
+    }
 }

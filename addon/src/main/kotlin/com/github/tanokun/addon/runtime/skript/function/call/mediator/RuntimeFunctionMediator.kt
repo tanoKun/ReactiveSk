@@ -10,5 +10,5 @@ sealed class RuntimeFunctionMediator(): Event() {
 
     override fun equals(other: Any?): Boolean = this === other
 
-    override fun hashCode(): Int= javaClass.hashCode()
+    override fun hashCode(): Int = javaClass.hashCode()
 }
