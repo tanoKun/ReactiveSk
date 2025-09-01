@@ -6,22 +6,26 @@ import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
+import com.github.tanokun.addon.definition.dynamic.PropertyModifiers.isImmutable
 import com.github.tanokun.addon.intermediate.generator.internalArrayListSetterOf
+import com.github.tanokun.addon.intermediate.generator.internalSetterOf
 import com.github.tanokun.addon.intermediate.metadata.ModifierMetadata
-import com.github.tanokun.addon.intermediate.metadata.MutableFieldMetadata
-import com.github.tanokun.addon.lookup
+import com.github.tanokun.addon.runtime.DynamicAccessChecks.checkAccessError
+import com.github.tanokun.addon.runtime.skript.SkriptExpressionInitChecks.checkSingletonError
 import org.bukkit.event.Event
 import java.lang.invoke.MethodHandle
+import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.lang.reflect.Field
-import java.lang.reflect.Modifier
 
 @Suppress("UNCHECKED_CAST")
 class SetTypedValueFieldEffect: Effect() {
+    private val lookup = MethodHandles.publicLookup()
+
     companion object {
         init {
             Skript.registerEffect(SetTypedValueFieldEffect::class.java,
-                "%object% -> %object%",
+                "%object% \\<- %object%",
             )
         }
     }
@@ -35,7 +39,7 @@ class SetTypedValueFieldEffect: Effect() {
     private lateinit var setterHandle: MethodHandle
 
     override fun init(
-        exprs: Array<out Expression<*>?>,
+        exprs: Array<out Expression<*>>,
         matchedPattern: Int,
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
@@ -48,21 +52,16 @@ class SetTypedValueFieldEffect: Effect() {
         field = fieldExpr.field
         targetExpr = fieldExpr.targetExpr
 
-        if (Modifier.isPrivate(field.getAnnotation(ModifierMetadata::class.java).modifiers) && !fieldExpr.isInThisClass(parser, fieldExpr.targetClass)) {
-            Skript.error("Cannot write field '${fieldExpr.fieldName}' in '${fieldExpr.targetClass.simpleName}' because it is private field.")
-            return false
-        }
+        val modifiers = field.getAnnotation(ModifierMetadata::class.java).modifiers
 
-        if (!field.isAnnotationPresent(MutableFieldMetadata::class.java)) {
+        if (fieldExpr.targetClass.checkAccessError(parser, modifiers, "Cannot write field '${fieldExpr.fieldName}' in '${fieldExpr.targetClass.simpleName}' because it is private field.")) return false
+
+        if (modifiers.isImmutable()) {
             Skript.error("Cannot write field '${fieldExpr.fieldName}' in '${fieldExpr.targetClass.simpleName}' because it is immutable field.")
         }
 
+        if (checkSingletonError(exprs[1])) return false
         valueExpr = LiteralUtils.defendExpression(exprs[1])
-
-        if (!valueExpr.isSingle) {
-            Skript.error("Definition '$valueExpr' must be single.")
-            return false
-        }
 
         if (!field.type.isAssignableFrom(valueExpr.returnType)) {
             Skript.error("Cannot assign $valueExpr to field '${fieldExpr.fieldName}' because it's not type '${field.type.simpleName}' but '${valueExpr.returnType.simpleName}'")
@@ -76,8 +75,11 @@ class SetTypedValueFieldEffect: Effect() {
                     internalArrayListSetterOf(fieldExpr.fieldName.identifier),
                     MethodType.methodType(Void.TYPE, ArrayList::class.java)
                 )
-            } else lookup.unreflectSetter(field)
-
+            } else lookup.findVirtual(
+                targetExpr.getReturnType(),
+                internalSetterOf(fieldExpr.fieldName.identifier),
+                MethodType.methodType(Void.TYPE, valueExpr.returnType)
+            )
 
         return true
     }

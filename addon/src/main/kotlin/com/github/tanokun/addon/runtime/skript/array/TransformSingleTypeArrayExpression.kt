@@ -8,6 +8,7 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
+import com.github.tanokun.addon.runtime.skript.SkriptExpressionInitChecks.checkSingletonError
 import org.bukkit.event.Event
 
 @Suppress("UNCHECKED_CAST")
@@ -35,10 +36,9 @@ class TransformSingleTypeArrayExpression : SimpleExpression<ArrayList<*>>() {
         parseResult: SkriptParser.ParseResult
     ): Boolean {
         objectsExpr = LiteralUtils.defendExpression<Any?>(exprs[0]) as Expression<Any?>
-        classInfo = (exprs[1] as Expression<ClassInfo<*>>).getSingle(null)  ?: let {
-            Skript.error("ClassInfo is null. ${exprs[1]}")
-            return false
-        }
+
+        if (checkSingletonError(exprs[1])) return false
+        classInfo = (exprs[1] as Expression<ClassInfo<*>>).getSingle(null) ?: return false
 
         return true
     }
