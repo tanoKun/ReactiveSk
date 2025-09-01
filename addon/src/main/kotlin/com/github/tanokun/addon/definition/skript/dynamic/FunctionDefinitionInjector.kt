@@ -8,9 +8,6 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.TriggerItem
 import ch.njol.skript.registrations.Classes
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.analysis.ast.AstSection
-import com.github.tanokun.addon.analysis.ast.result.Severity.ERROR
-import com.github.tanokun.addon.analysis.ast.result.Severity.WARNING
 import com.github.tanokun.addon.analysis.section.LocalTypedVariableCapacityAnalyzer
 import com.github.tanokun.addon.analysis.section.function.FunctionReturnAnalyzer
 import com.github.tanokun.addon.definition.Identifier
@@ -23,7 +20,6 @@ import com.github.tanokun.addon.intermediate.generator.internalFunctionNameOf
 import com.github.tanokun.addon.intermediate.generator.internalFunctionTriggerField
 import com.github.tanokun.addon.intermediate.parse.ast.SkriptAstBuilder
 import com.github.tanokun.addon.moduleManager
-import com.github.tanokun.addon.runtime.skript.init.ResolveTypedValueFieldEffect
 import org.bukkit.event.Event
 import java.lang.reflect.Method
 
@@ -91,20 +87,7 @@ class FunctionDefinitionInjector : Section() {
         thisDynamicClass.getField(internalFunctionTriggerField(functionName)).set(null, triggerItem)
 
         val returnAnalyzer = FunctionReturnAnalyzer(astRoot, Identifier(functionName), thisClassDefinition.className, functionDefinition.returnTypeName != null)
-        val (problems, _) = returnAnalyzer.analyze()
-
-        problems.forEach {
-            val triggerItem = (it.location as? AstSection.Line)?.item
-            val originNode = parser.node
-            if (triggerItem is ResolveTypedValueFieldEffect) parser.node = triggerItem.parseNode
-
-            when (it.severity) {
-                ERROR -> Skript.error(it.message)
-                WARNING -> Skript.warning(it.message)
-            }
-
-            parser.node = originNode
-        }
+        analyzeSection(returnAnalyzer, parser)
 
         val localsAnalyzer = LocalTypedVariableCapacityAnalyzer(astRoot)
         val (_, localCapacity) = localsAnalyzer.analyze()

@@ -7,9 +7,6 @@ import ch.njol.skript.lang.Section
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.TriggerItem
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.analysis.ast.AstSection
-import com.github.tanokun.addon.analysis.ast.result.Severity.ERROR
-import com.github.tanokun.addon.analysis.ast.result.Severity.WARNING
 import com.github.tanokun.addon.analysis.section.LocalTypedVariableCapacityAnalyzer
 import com.github.tanokun.addon.analysis.section.init.InitSectionAnalyzer
 import com.github.tanokun.addon.definition.Identifier
@@ -22,7 +19,6 @@ import com.github.tanokun.addon.intermediate.generator.INTERNAL_CONSTRUCTOR_LOCA
 import com.github.tanokun.addon.intermediate.generator.INTERNAL_INIT_TRIGGER_SECTION
 import com.github.tanokun.addon.intermediate.parse.ast.SkriptAstBuilder
 import com.github.tanokun.addon.moduleManager
-import com.github.tanokun.addon.runtime.skript.init.ResolveTypedValueFieldEffect
 import org.bukkit.event.Event
 
 class InitDefinitionInjector: Section() {
@@ -75,20 +71,7 @@ class InitDefinitionInjector: Section() {
         thisDynamicClass.getField(INTERNAL_INIT_TRIGGER_SECTION).set(null, triggerItem)
 
         val analyzer = InitSectionAnalyzer(astRoot, thisClassDefinition.className, thisClassDefinition.getRequiredInitializationFields())
-        val (problems, _) = analyzer.analyze()
-
-        problems.forEach {
-            val triggerItem = (it.location as? AstSection.Line)?.item
-            val originNode = parser.node
-            if (triggerItem is ResolveTypedValueFieldEffect) parser.node = triggerItem.parseNode
-
-            when (it.severity) {
-                ERROR -> Skript.error(it.message)
-                WARNING -> Skript.warning(it.message)
-            }
-
-            parser.node = originNode
-        }
+        analyzeSection(analyzer, parser)
 
         val localsAnalyzer = LocalTypedVariableCapacityAnalyzer(astRoot)
         val (_, localCapacity) = localsAnalyzer.analyze()
@@ -103,7 +86,7 @@ class InitDefinitionInjector: Section() {
 
     override fun walk(e: Event?): TriggerItem? { return null }
 
-    override fun toString(e: Event?, debug: Boolean): String? = "init definition injector"
+    override fun toString(e: Event?, debug: Boolean): String = "init definition injector"
 
     override fun equals(other: Any?): Boolean = other === this
 

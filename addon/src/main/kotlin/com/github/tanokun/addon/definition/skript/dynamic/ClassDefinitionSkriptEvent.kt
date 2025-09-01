@@ -4,10 +4,16 @@ import ch.njol.skript.Skript
 import ch.njol.skript.lang.Literal
 import ch.njol.skript.lang.SkriptEvent
 import ch.njol.skript.lang.SkriptParser
+import ch.njol.skript.lang.parser.ParserInstance
+import com.github.tanokun.addon.analysis.ast.AbstractDataFlowAnalyzer
+import com.github.tanokun.addon.analysis.ast.AstSection
+import com.github.tanokun.addon.analysis.ast.result.Severity.ERROR
+import com.github.tanokun.addon.analysis.ast.result.Severity.WARNING
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.dynamic.ClassDefinition
 import com.github.tanokun.addon.definition.skript.maker.ClassDefinitionEventMaker
 import com.github.tanokun.addon.moduleManager
+import com.github.tanokun.addon.runtime.skript.init.ResolveTypedValueFieldEffect
 import org.bukkit.event.Event
 
 /**
@@ -50,9 +56,26 @@ class ClassDefinitionSkriptEvent : SkriptEvent() {
 
     override fun check(e: Event?): Boolean = false
 
-    override fun toString(e: Event?, debug: Boolean): String? = "class definition event"
+    override fun toString(e: Event?, debug: Boolean): String = "class definition event"
 
     override fun hashCode(): Int = dynamicClassDefinition?.hashCode() ?: 0
 
     override fun equals(other: Any?): Boolean = this === other
+}
+
+fun <T: Any> analyzeSection(analyzer: AbstractDataFlowAnalyzer<T>, parser: ParserInstance) {
+    val (problems, _) = analyzer.analyze()
+
+    problems.forEach {
+        val triggerItem = (it.location as? AstSection.Line)?.item
+        val originNode = parser.node
+        if (triggerItem is ResolveTypedValueFieldEffect) parser.node = triggerItem.parseNode
+
+        when (it.severity) {
+            ERROR -> Skript.error(it.message)
+            WARNING -> Skript.warning(it.message)
+        }
+
+        parser.node = originNode
+    }
 }
