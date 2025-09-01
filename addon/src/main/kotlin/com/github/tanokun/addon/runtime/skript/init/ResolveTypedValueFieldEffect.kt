@@ -16,15 +16,18 @@ import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
 import com.github.tanokun.addon.intermediate.generator.fieldOf
 import com.github.tanokun.addon.intermediate.generator.internalArrayListSetterOf
-import com.github.tanokun.addon.lookup
+import com.github.tanokun.addon.intermediate.generator.internalSetterOf
 import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
-import com.github.tanokun.addon.runtime.variable.VariableFrames
+import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
 import org.bukkit.event.Event
 import java.lang.invoke.MethodHandle
+import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 
 @Suppress("UNCHECKED_CAST")
 class ResolveTypedValueFieldEffect: Effect() {
+    private val lookup = MethodHandles.publicLookup()
+
     companion object {
         init {
             Skript.registerEffect(ResolveTypedValueFieldEffect::class.java,
@@ -101,7 +104,12 @@ class ResolveTypedValueFieldEffect: Effect() {
                     internalArrayListSetterOf(fieldName.identifier),
                     MethodType.methodType(Void.TYPE, ArrayList::class.java)
                 )
-            } else lookup.unreflectSetter(field)
+            } else
+                lookup.findVirtual(
+                    clazz,
+                    internalSetterOf(fieldName.identifier),
+                    MethodType.methodType(Void.TYPE, valueExpr.returnType)
+                )
 
 
         getterHandle = lookup.unreflectGetter(field)
@@ -109,7 +117,7 @@ class ResolveTypedValueFieldEffect: Effect() {
         val depth = parseNode.getDepth()
         val topNode = parseNode.getTopNode()
 
-        TypedVariableResolver.touchSection(topNode, depth, parser.currentSections.firstOrNull())
+        TypedVariableResolver.touchSection(topNode, depth, parser.currentSections.lastOrNull())
 
         TypedVariableResolver.getDeclarationInScopeChain(topNode, depth, Identifier("this")) ?: let {
             Skript.error("Cannot find 'this' variable in scope chain.")
@@ -122,7 +130,7 @@ class ResolveTypedValueFieldEffect: Effect() {
     override fun execute(e: Event) {
         e as RuntimeConstructorMediator
 
-        val target = VariableFrames.get(e, 0) ?: throw IllegalStateException("Integrity of 'this' is broken.")
+        val target = AmbiguousVariableFrames.get(e, 0) ?: throw IllegalStateException("Integrity of 'this' is broken.")
         val value = valueExpr.getSingle(e) ?: throw IllegalStateException("Integrity of '$valueExpr' is broken.")
 
         if (getterHandle.invoke(target) != null) throw IllegalStateException("Cannot resolve field '$fieldName' in '${target::class.java.simpleName}' because it's already initialized.")

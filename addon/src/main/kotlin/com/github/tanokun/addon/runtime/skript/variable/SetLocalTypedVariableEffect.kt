@@ -12,7 +12,7 @@ import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.runtime.variable.VariableFrames
+import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
 import org.bukkit.event.Event
 
 @Suppress("UNCHECKED_CAST")
@@ -20,7 +20,7 @@ class SetLocalTypedVariableEffect: Effect() {
     companion object {
         init {
             Skript.registerEffect(SetLocalTypedVariableEffect::class.java,
-                "\\[%*identifier%\\] (\\:= | ->) %object%",
+                "\\[%*identifier%\\] (\\:= | \\<-) %object%",
             )
         }
     }
@@ -50,7 +50,7 @@ class SetLocalTypedVariableEffect: Effect() {
         val depth = node.getDepth()
         val topNode = node.getTopNode()
 
-        TypedVariableResolver.touchSection(topNode, depth, parser.currentSections.firstOrNull())
+        TypedVariableResolver.touchSection(topNode, depth, parser.currentSections.lastOrNull())
 
         val declaration = TypedVariableResolver.getDeclarationInScopeChain(topNode, depth, variableName)
 
@@ -84,7 +84,7 @@ class SetLocalTypedVariableEffect: Effect() {
         val value = definitionExpr.getSingle(e)
 
         if (declaration.isMutable) {
-            VariableFrames.set(e, declaration.index, value)
+            AmbiguousVariableFrames.set(e, declaration.index, value)
             return
         }
 
@@ -93,7 +93,7 @@ class SetLocalTypedVariableEffect: Effect() {
             throw IllegalStateException("Typed variable '${declaration.variableName}' is initialized." + onDebug)
         }
 
-        VariableFrames.set(e, declaration.index, value)
+        AmbiguousVariableFrames.set(e, declaration.index, value)
     }
 
     override fun toString(e: Event?, debug: Boolean): String = ""

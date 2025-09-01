@@ -5,7 +5,7 @@ import java.lang.invoke.MethodHandle
 object MethodHandleInvokerUtil {
     fun <E> buildConstructor(argumentSize: Int, methodHandle: MethodHandle): (Array<*>, E) -> Any {
         return when (argumentSize) {
-            0 -> { arguments, e -> methodHandle.invokeExact(e) }
+            0 -> { _, e -> methodHandle.invokeExact(e) }
             1 -> { arguments, e -> methodHandle.invokeExact(e, arguments[0]) }
             2 -> { arguments, e -> methodHandle.invokeExact(e, arguments[0], arguments[1]) }
             3 -> { arguments, e -> methodHandle.invokeExact(e, arguments[0], arguments[1], arguments[2]) }
@@ -30,7 +30,7 @@ object MethodHandleInvokerUtil {
         }
     }
 
-    fun <C, E> buildFunction(argumentSize: Int, methodHandle: MethodHandle): (Array<*>, C, E) -> Unit {
+    fun buildFunction(argumentSize: Int, methodHandle: MethodHandle): (Array<Any?>, Any, Any) -> Unit {
         return when (argumentSize) {
             0 -> { arguments, callee, e -> methodHandle.invokeExact(callee, e) }
             1 -> { arguments, callee, e -> methodHandle.invokeExact(callee, e, arguments[0]) }
