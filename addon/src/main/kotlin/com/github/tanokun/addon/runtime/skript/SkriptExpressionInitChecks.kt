@@ -5,8 +5,8 @@ import ch.njol.skript.lang.Expression
 
 object SkriptExpressionInitChecks {
     fun checkSingletonError(expr: Expression<*>): Boolean {
-        if (expr.isSingle) {
-            Skript.error("The expression $expr must not be single.")
+        if (!expr.isSingle) {
+            Skript.error("Only single expressions are allowed here, but you used a list expression $expr.")
             return true
         }
 
