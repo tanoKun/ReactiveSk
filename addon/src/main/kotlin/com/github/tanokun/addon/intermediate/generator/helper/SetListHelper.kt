@@ -6,8 +6,6 @@ object SetListHelper {
 
     @JvmStatic
     fun checkTypes(list: ArrayList<*>, clazz: Class<*>) {
-        requireNotNull(list) { "list is null" }
-
         for (elem in list) {
             require(clazz.isInstance(elem)) { "array element type is not " + clazz.simpleName + ": " + elem.toString() }
         }
