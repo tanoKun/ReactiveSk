@@ -89,10 +89,11 @@ class ConstructorDefiner(
             if (!p.isProperty()) return@foldIndexed acc
 
             if (p.isArray) {
-                val setterName = internalArrayListSetterWithoutNotificationOf(p.parameterName.identifier)
+                val setterName = internalArrayListSetterOf(p.parameterName.identifier)
                 acc.andThen(
                     MethodCall.invoke(named(setterName))
                         .withArgument(index + 1)
+                        .with(false)
                 )
             } else {
                 acc.andThen(

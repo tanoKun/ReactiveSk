@@ -102,13 +102,13 @@ class ResolveTypedValueFieldEffect: Effect() {
                 lookup.findVirtual(
                     clazz,
                     internalArrayListSetterOf(fieldName.identifier),
-                    MethodType.methodType(Void.TYPE, ArrayList::class.java)
+                    MethodType.methodType(Void.TYPE, ArrayList::class.java, Boolean::class.java)
                 )
             } else
                 lookup.findVirtual(
                     clazz,
                     internalSetterOf(fieldName.identifier),
-                    MethodType.methodType(Void.TYPE, valueExpr.returnType)
+                    MethodType.methodType(Void.TYPE, valueExpr.returnType, Boolean::class.java)
                 )
 
 
@@ -134,7 +134,7 @@ class ResolveTypedValueFieldEffect: Effect() {
         val value = valueExpr.getSingle(e) ?: throw IllegalStateException("Integrity of '$valueExpr' is broken.")
 
         if (getterHandle.invoke(target) != null) throw IllegalStateException("Cannot resolve field '$fieldName' in '${target::class.java.simpleName}' because it's already initialized.")
-        setterHandle.invoke(target, value)
+        setterHandle.invoke(target, value, false)
     }
 
     override fun toString(e: Event?, debug: Boolean): String = "resolve $fieldName \\:= $valueExpr"

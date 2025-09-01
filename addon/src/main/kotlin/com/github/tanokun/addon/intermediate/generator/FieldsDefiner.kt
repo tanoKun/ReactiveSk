@@ -87,7 +87,7 @@ class FieldsDefiner(
 
         return builder
             .defineMethod(setterName, Void.TYPE, Modifier.PUBLIC)
-            .withParameters(fieldType)
+            .withParameters(fieldType, TypeDescription.ForLoadedType.of(Boolean::class.java))
             .intercept(adviceProxy.wrap(StubMethod.INSTANCE))
     }
 
@@ -104,15 +104,8 @@ class FieldsDefiner(
 
         val result = builder
             .defineMethod(setterName, Void.TYPE, Modifier.PUBLIC)
-            .withParameters(java.util.ArrayList::class.java)
+            .withParameters(ArrayList::class.java, Boolean::class.java)
             .intercept(notifyImpl)
-            .let {
-                if (isFactor)
-                    it.defineMethod(internalArrayListSetterWithoutNotificationOf(name), Void.TYPE, Modifier.PUBLIC)
-                        .withParameters(ArrayList::class.java)
-                        .intercept(checkTypeImpl)
-                else it
-            }
 
         return result
     }
@@ -143,15 +136,15 @@ class FieldsDefiner(
     companion object {
         private val CHECK_TYPES_METHOD: Method = SetListHelper::class.java.getMethod(
             "checkTypes",
-            java.util.ArrayList::class.java,
+            ArrayList::class.java,
             Class::class.java
         )
 
         private val NOTIFY_METHOD: Method = SetListHelper::class.java.getMethod(
             "notify",
             Any::class.java,
-            java.util.ArrayList::class.java,
-            java.util.ArrayList::class.java,
+            ArrayList::class.java,
+            ArrayList::class.java,
             String::class.java
         )
     }

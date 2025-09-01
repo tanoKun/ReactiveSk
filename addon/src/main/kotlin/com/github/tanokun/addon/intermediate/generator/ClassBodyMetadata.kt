@@ -20,10 +20,6 @@ fun internalFunctionNameOf(funcName: String): String = "$INTERNAL_FUNCTION_NAME_
 fun internalArrayListSetterOf(name: String): String =
     INTERNAL_PREFIX + "set" + name.replaceFirstChar(Char::uppercase) + "ArrayList"
 
-fun internalArrayListSetterWithoutNotificationOf(name: String): String =
-    INTERNAL_PREFIX + $$"set$only" + name.replaceFirstChar(Char::uppercase) + "ArrayList"
-
-
 fun internalSetterOf(name: String): String =
     INTERNAL_PREFIX + "set" + name.replaceFirstChar(Char::uppercase)
 

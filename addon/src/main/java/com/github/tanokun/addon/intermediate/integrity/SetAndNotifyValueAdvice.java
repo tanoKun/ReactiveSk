@@ -11,12 +11,14 @@ public class SetAndNotifyValueAdvice {
             @Advice.This Object obj,
             @FieldName String name,
             @Advice.Argument(0) T buf,
+            @Advice.Argument(1) boolean shouldNotify,
             @Advice.FieldValue(readOnly = false, typing = Assigner.Typing.DYNAMIC) T field
     ) {
         T old = field;
         field = buf;
 
         if (old == field) return;
+        if (!shouldNotify) return;
 
         ChangeNotifier.notify(obj, old, field, name);
     }

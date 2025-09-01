@@ -26,6 +26,7 @@ class SetTypedValueFieldEffect: Effect() {
         init {
             Skript.registerEffect(SetTypedValueFieldEffect::class.java,
                 "%object% \\<- %object%",
+                "[notify] %object% \\<- %object%",
             )
         }
     }
@@ -38,6 +39,8 @@ class SetTypedValueFieldEffect: Effect() {
 
     private lateinit var setterHandle: MethodHandle
 
+    private var shouldNotify: Boolean = false
+
     override fun init(
         exprs: Array<out Expression<*>>,
         matchedPattern: Int,
@@ -49,6 +52,7 @@ class SetTypedValueFieldEffect: Effect() {
             return false
         }
 
+        shouldNotify = matchedPattern == 1
         field = fieldExpr.field
         targetExpr = fieldExpr.targetExpr
 
@@ -73,12 +77,12 @@ class SetTypedValueFieldEffect: Effect() {
                 lookup.findVirtual(
                     targetExpr.getReturnType(),
                     internalArrayListSetterOf(fieldExpr.fieldName.identifier),
-                    MethodType.methodType(Void.TYPE, ArrayList::class.java)
+                    MethodType.methodType(Void.TYPE, ArrayList::class.java, Boolean::class.java)
                 )
             } else lookup.findVirtual(
                 targetExpr.getReturnType(),
                 internalSetterOf(fieldExpr.fieldName.identifier),
-                MethodType.methodType(Void.TYPE, valueExpr.returnType)
+                MethodType.methodType(Void.TYPE, valueExpr.returnType, Boolean::class.java)
             )
 
         return true
@@ -88,7 +92,7 @@ class SetTypedValueFieldEffect: Effect() {
         val target = targetExpr.getSingle(e) ?: throw IllegalStateException("Integrity of '$targetExpr' is broken.")
         val value = valueExpr.getSingle(e) ?: throw IllegalStateException("Integrity of '$valueExpr' is broken.")
 
-        setterHandle.invoke(target, value)
+        setterHandle.invoke(target, value, shouldNotify)
     }
 
     override fun toString(e: Event?, debug: Boolean): String = ""
