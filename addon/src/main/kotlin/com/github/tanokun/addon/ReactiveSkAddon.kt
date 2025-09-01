@@ -4,31 +4,23 @@ import ch.njol.skript.Skript
 import ch.njol.skript.SkriptAddon
 import ch.njol.skript.classes.ClassInfo
 import ch.njol.skript.registrations.Classes
+import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.intermediate.DynamicClassDefinitionLoader
-import com.github.tanokun.addon.intermediate.DynamicJavaClassLoader
-import com.github.tanokun.addon.intermediate.generator.ByteBuddyGenerator
+import com.github.tanokun.addon.definition.dynamic.DynamicClass
+import com.github.tanokun.addon.module.ModuleManager
 import com.github.tanokun.addon.runtime.skript.serializer.DynamicInstanceSerializer
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
+import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
+import kotlinx.coroutines.*
 import org.bukkit.plugin.java.JavaPlugin
-import java.lang.invoke.MethodHandles
 
 lateinit var coroutineScope: CoroutineScope private set
 
 lateinit var job: Job private set
 
-val dynamicClassDefinitionLoader = DynamicClassDefinitionLoader()
-val dynamicJavaClassLoader = DynamicJavaClassLoader(
-    ::classResolver,
-    ByteBuddyGenerator(),
-    dynamicClassDefinitionLoader
-)
+val moduleManager by lazy { ModuleManager(Skript.getInstance().dataFolder, ::classResolver) }
 
-val lookup: MethodHandles.Lookup = MethodHandles.lookup()
+lateinit var plugin: ReactiveSkAddon private set
 
 private fun classResolver(className: Identifier): Class<*>? {
     return Classes.getClassInfoNoError(className.identifier.lowercase())?.c
@@ -38,7 +30,10 @@ class ReactiveSkAddon : JavaPlugin() {
     lateinit var addon: SkriptAddon
         private set
 
+    @Suppress("UNCHECKED_CAST")
     override fun onEnable() {
+        plugin = this
+
         val exceptionHandler = CoroutineExceptionHandler { context, throwable ->
             logger.severe(throwable.stackTraceToString())
         }
@@ -47,18 +42,17 @@ class ReactiveSkAddon : JavaPlugin() {
 
         ClassesRegister.registerAll()
 
-        dynamicClassDefinitionLoader.loadAllClassesFrom(folder = Skript.getInstance().dataFolder)
-        dynamicClassDefinitionLoader.getClassNames().forEach {
+        moduleManager.initialize()
+        moduleManager.definitionLoader.getAllDefinitions().forEach {
             try {
-                val clazz = dynamicJavaClassLoader.getDynamicClassOrGenerate(it)
                 Classes.registerClass(
-                    ClassInfo(clazz, it.identifier.lowercase())
-                        .name(it.identifier)
-                        .user(it.identifier, it.identifier.lowercase())
+                    ClassInfo(moduleManager.getLoadedClass(it.className) as Class<out DynamicClass>, it.className.identifier.lowercase())
+                        .name(it.className.identifier)
+                        .user(it.className.identifier, it.className.identifier.lowercase())
                         .serializer(DynamicInstanceSerializer())
                 )
             }catch (e: Throwable) {
-                logger.warning("Failed to load class '${it.identifier}' -> ${e.message}")
+                logger.warning("Failed to load class '${it.className.identifier}' -> ${e.message}")
             }
         }
 
@@ -66,6 +60,13 @@ class ReactiveSkAddon : JavaPlugin() {
         addon.loadClasses("com.github.tanokun.addon")
 
         logger.info("ReactiveSk Addon has been enabled successfully!")
+
+        launch {
+            while (true) {
+                delay(5000)
+                println(AmbiguousVariableFrames.frames.size)
+            }
+        }
     }
 
     override fun onDisable() {
