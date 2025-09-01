@@ -18,7 +18,7 @@ class TypedVariableResolverTest {
     @DisplayName("同一スコープに存在する宣言を取得できる")
     fun getDeclaration_sameScope() {
         val top = mockk<Node>()
-        val decl = TypedVariableDeclaration(id("x"), String::class.java, false, 2)
+        val decl = TypedVariableDeclaration(id("x"), String::class.java, false, 2, 0)
 
         TypedVariableResolver.declare(top, decl)
 
@@ -31,8 +31,8 @@ class TypedVariableResolverTest {
     @DisplayName("内側スコープの宣言が優先される")
     fun getDeclaration_innerScopePreferred() {
         val top = mockk<Node>()
-        val outer = TypedVariableDeclaration(id("x"), Long::class.java, false, 0)
-        val inner = TypedVariableDeclaration(id("x"), String::class.java, false, 2)
+        val outer = TypedVariableDeclaration(id("x"), Long::class.java, false, 0, 0)
+        val inner = TypedVariableDeclaration(id("x"), String::class.java, false, 2, 1)
 
         TypedVariableResolver.declare(top, outer)
         TypedVariableResolver.declare(top, inner)
@@ -46,7 +46,7 @@ class TypedVariableResolverTest {
     @DisplayName("外側スコープから可視な宣言を見つける")
     fun getDeclaration_fromOuterScope() {
         val top = mockk<Node>()
-        val outer = TypedVariableDeclaration(id("y"), Int::class.javaObjectType, false, 1)
+        val outer = TypedVariableDeclaration(id("y"), Int::class.javaObjectType, false, 1, 0)
 
         TypedVariableResolver.declare(top, outer)
 

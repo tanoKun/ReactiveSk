@@ -18,6 +18,7 @@ Skript に **オブジェクト指向・軽いリアクティブ**を使用し�
   * [変数アクセス](#変数アクセス)
 * [監視 - Observer](#監視---observer)
   * [クラス監視](#クラス監視)
+    * [参照可能な変数](#参照可能な変数)
   * [インスタンス監視](#インスタンス監視)
 * [例](#例)
   * [カウンタークラス](#カウンタークラス)
@@ -168,17 +169,17 @@ class Player[factor level: long, factor exp: long]:
             [this].level <- [this].level + 1
             [this].exp <- [this].exp - 100
 
-observe Player:
-    send "プレイヤーのステータスが変化しました: Level %[instance].level%, Exp %[instance].exp%"
-
 observe Player factor level:
     if [instance].level >= 10:
         send "レベル10に到達しました！ おめでとう！"
 ```
 
-2種類の方法が存在し、`要因` を指定する方法と、`要因` を指定しない方法があります。
-- `observe ClassName:` : クラスの `factor` 変数が変更された場合に通知されます。
-- `observe ClassName factor fieldName:` : 指定した `factor` 変数が変更された場合に通知されます。
+`observe <ClassName> factor <fieldName>:` で監視を開始します。
+
+### 参照可能な変数
+- `[instance]` : 変更があったインスタンス
+- `[old]` : 変更前の値
+- `[new]` : 変更後の値
 
 > 一つのロジックで2回 `factor` 変数を変更した場合、2回通知されます。
 > 通知自体はメインスレッドで行われますが、**順序は確定しません**。
