@@ -19,7 +19,7 @@ Skript に **オブジェクト指向・軽いリアクティブ**を使用し�
 * [監視 - Observer](#監視---observer)
   * [クラス監視](#クラス監視)
     * [参照可能な変数](#参照可能な変数)
-  * [インスタンス監視](#インスタンス監視)
+  * [通知 - Notify](#通知---notify)
 * [例](#例)
   * [カウンタークラス](#カウンタークラス)
 <!-- TOC -->
@@ -164,7 +164,7 @@ val count (integer)             # 宣言
 ```
 class Player[factor level: long, factor exp: long]:
     function addExp(amount: long):
-        [this].exp <- [this].exp + amount
+        notify [this].exp <- [this].exp + [amount]
         if [this].exp >= 100:
             [this].level <- [this].level + 1
             [this].exp <- [this].exp - 100
@@ -184,9 +184,14 @@ observe Player factor level:
 > 一つのロジックで2回 `factor` 変数を変更した場合、2回通知されます。
 > 通知自体はメインスレッドで行われますが、**順序は確定しません**。
 > また、全て `suspend` で実行されます。
+> 
 
-## インスタンス監視
+## 通知 - Notify
+フィールド変更時、デフォルトでは通知は行われません。(`[object].field <- value` での変更)
 
+通知を行うには `notify` を使用します。
+`notify [this].field <- value` の様にすることで、通知を行うことができます。
+この設定は、不要な通知を避けるために実装されています。
 
 # 例
 ## カウンタークラス
