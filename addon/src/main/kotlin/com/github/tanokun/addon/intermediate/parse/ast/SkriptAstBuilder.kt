@@ -9,7 +9,8 @@ import ch.njol.skript.sections.SecLoop
 import com.github.tanokun.addon.analysis.ast.AstSection
 import com.github.tanokun.addon.analysis.ast.ElseIf
 import com.github.tanokun.addon.analysis.ast.SkriptAst
-import java.lang.reflect.Field
+import com.github.tanokun.addon.intermediate.Reflection
+import com.github.tanokun.addon.intermediate.firstInSection
 
 object SkriptAstBuilder {
 
@@ -171,34 +172,6 @@ private val SecConditional.type: CType
         val rawValue = field.get(this) as Enum<*>
         return CType.valueOf(rawValue.name)
     }
-
-/**
- * 汎用のSectionから最初のTriggerItemを取得する拡張プロパティ。
- */
-private val Section.firstInSection: TriggerItem?
-    get() {
-        val field = Reflection.findField(this.javaClass, "first")
-        return field.get(this) as? TriggerItem
-    }
-
-/**
- * リフレクションによるフィールドアクセスをカプセル化し、結果をキャッシュするシングルトンオブジェクト。
- */
-private object Reflection {
-    private val fieldCache = mutableMapOf<Pair<Class<*>, String>, Field>()
-
-    fun findField(cls: Class<*>, name: String): Field = fieldCache.getOrPut(cls to name) {
-        var currentClass: Class<*>? = cls
-        while (currentClass != null) {
-            try {
-                return@getOrPut currentClass.getDeclaredField(name).apply { isAccessible = true }
-            } catch (_: NoSuchFieldException) {
-                currentClass = currentClass.superclass
-            }
-        }
-        throw NoSuchFieldException("Field '$name' not found in ${cls.name} or its superclasses")
-    }
-}
 
 fun AstSection.toStructString(indent: String = "", next: String = "    "): String = when (this) {
     is AstSection.Block -> {
