@@ -129,9 +129,13 @@ class GetTypedValueFieldExpression: Expression<Any> {
 
     override fun isSingle(): Boolean = true
 
-    override fun check(e: Event, c: Checker<in Any>, negated: Boolean): Boolean = true
+    override fun check(e: Event, c: Checker<in Any>, negated: Boolean): Boolean {
+        return c.check(getSingle(e))
+    }
 
-    override fun check(e: Event, c: Checker<in Any>?): Boolean = true
+    override fun check(e: Event, c: Checker<in Any>): Boolean {
+        return c.check(getSingle(e))
+    }
 
     override fun <R : Any?> getConvertedExpression(vararg to: Class<R>): Expression<out R>? = null
 }
