@@ -3,7 +3,6 @@ package com.github.tanokun.addon
 import ch.njol.skript.classes.ClassInfo
 import ch.njol.skript.classes.Parser
 import ch.njol.skript.lang.ParseContext
-import ch.njol.skript.lang.util.SimpleLiteral
 import ch.njol.skript.registrations.Classes
 import com.github.tanokun.addon.definition.DynamicClassInfo
 import com.github.tanokun.addon.definition.Identifier
@@ -36,7 +35,6 @@ object ClassesRegister {
                 val variableNamePattern: String
                     get() = "[_a-zA-Z][a-zA-Z0-9]*"
             })
-            .defaultExpression(SimpleLiteral(Identifier.empty, true))
         )
     }
 
