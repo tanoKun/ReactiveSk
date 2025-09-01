@@ -9,7 +9,7 @@ import com.github.tanokun.addon.definition.DynamicClassInfo
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.dynamic.DynamicClass
 
-val identifierPattern = "[_a-zA-Z$][a-zA-Z0-9_$]*".toRegex()
+val identifierPattern = "[_a-zA-Z][a-zA-Z0-9]*".toRegex()
 
 object ClassesRegister {
     fun registerAll() {
@@ -34,7 +34,7 @@ object ClassesRegister {
                 override fun toVariableNameString(o: Identifier): String? = variableNamePattern
 
                 val variableNamePattern: String
-                    get() = "[_a-zA-Z$][a-zA-Z0-9_$]*"
+                    get() = "[_a-zA-Z][a-zA-Z0-9]*"
             })
             .defaultExpression(SimpleLiteral(Identifier.empty, true))
         )
@@ -70,7 +70,7 @@ object ClassesRegister {
                 override fun toVariableNameString(o: DynamicClassInfo): String? = variableNamePattern
 
                 val variableNamePattern: String
-                    get() = "[_a-zA-Z$][a-zA-Z0-9_$]*"
+                    get() = "[_a-zA-Z][a-zA-Z0-9]*"
             })
         )
     }

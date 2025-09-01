@@ -6,6 +6,9 @@ Skript に **オブジェクト指向・軽いリアクティブ**を使用し�
 * [クラス定義](#クラス定義)
   * [コンストラクタとプロパティ](#コンストラクタとプロパティ)
   * [field セクション](#field-セクション)
+  * [修飾子](#修飾子)
+    * [アクセス修飾子](#アクセス修飾子)
+    * [宣言修飾子](#宣言修飾子)
   * [init セクション](#init-セクション)
 * [クラス関数定義](#クラス関数定義)
 * [クラス関数呼び出し](#クラス関数呼び出し)
@@ -13,6 +16,9 @@ Skript に **オブジェクト指向・軽いリアクティブ**を使用し�
 * [型と配列](#型と配列)
 * [変数宣言（型制限変数）](#変数宣言型制限変数)
   * [変数アクセス](#変数アクセス)
+* [監視 - Observer](#監視---observer)
+  * [クラス監視](#クラス監視)
+  * [インスタンス監視](#インスタンス監視)
 * [例](#例)
   * [カウンタークラス](#カウンタークラス)
 <!-- TOC -->
@@ -35,7 +41,7 @@ class Test2[test2: array of string, val test: string]:
 
 ## コンストラクタとプロパティ
 - 角括弧 `[...]` 内がコンストラクタ引数です。
-- そのうち `val` / `var` が付いた引数は `フィールド` として自動生成され、インスタンス生成時に自動代入されます。
+- そのうち `val` / `var` / `factor` が付いた引数は `フィールド` として自動生成され、インスタンス生成時に自動代入されます。
   - 例: `val test: string` → `test` は読み取り専用プロパティ
   - 例: `var test: string` → `test` は再代入可能プロパティ
 - `val` / `var` が付いていない引数はプロパティにはなりませんが、`init` セクション内からパラメータ名（例: `[test2]` のような参照表記）でアクセスできます。
@@ -52,6 +58,20 @@ class Test2[test2: array of string, val test: string]:
 
 また、解決する必要のあるフィールドは 直接 `[name]` でアクセスすることができません。
 行いたい場合は、`[this].name` を経由しアクセスしてください。
+
+## 修飾子
+修飾子には `アクセス修飾子`　と `宣言修飾子` の2種類があります。
+
+### アクセス修飾子
+- `pravate` : クラス外からアクセス不可
+
+### 宣言修飾子
+- `val` : 読み取り専用プロパティ
+- `var` : 再代入可能プロパティ
+- `factor` : 読み取り専用プロパティ + 監視の要因 (リアクティブ)
+
+`factor` は `var` と同様に再代入が可能です。
+この修飾子が付いている変数が変更されると、それを自動的に通知します。
 
 ## init セクション
 コンストラクタ実行後に呼ばれる初期化ブロックです。
@@ -118,7 +138,7 @@ val title (string) := "test"   # 型明示 + 初期化
 val msg := "hello"             # 型推論 + 初期化
 
 var count (integer) := 0        # 可変
-[count] -> [count] + 1          # 再代入
+[count] <- [count] + 1          # 再代入
 
 val count (integer)             # 宣言
 [count] := 10                   # 代入
@@ -134,6 +154,39 @@ val count (integer)             # 宣言
 `クラス関数` や `init セクション` において定義されている`引数`や`プロパティ`は、
 全て上記の方法でアクセス可能です。
 
+# 監視 - Observer
+`factor` 修飾子が付いたフィールドが変更されると、その変更が通知されます。
+パターンで言う `オブザーバーパターン` を実装します。
+
+## クラス監視
+
+```
+class Player[factor level: long, factor exp: long]:
+    function addExp(amount: long):
+        [this].exp <- [this].exp + amount
+        if [this].exp >= 100:
+            [this].level <- [this].level + 1
+            [this].exp <- [this].exp - 100
+
+observe Player:
+    send "プレイヤーのステータスが変化しました: Level %[instance].level%, Exp %[instance].exp%"
+
+observe Player factor level:
+    if [instance].level >= 10:
+        send "レベル10に到達しました！ おめでとう！"
+```
+
+2種類の方法が存在し、`要因` を指定する方法と、`要因` を指定しない方法があります。
+- `observe ClassName:` : クラスの `factor` 変数が変更された場合に通知されます。
+- `observe ClassName factor fieldName:` : 指定した `factor` 変数が変更された場合に通知されます。
+
+> 一つのロジックで2回 `factor` 変数を変更した場合、2回通知されます。
+> 通知自体はメインスレッドで行われますが、**順序は確定しません**。
+> また、全て `suspend` で実行されます。
+
+## インスタンス監視
+
+
 # 例
 ## カウンタークラス
 `クラス関数`で実装した`カウンター` と `Skript 本来の関数`で実装した`カウンター` の比較です。
@@ -141,7 +194,7 @@ val count (integer)             # 宣言
 ```
 class Counter[var count: long]:
     function increment():
-        [this].count -> [this].count + 1
+        [this].count <- [this].count + 1
         
 #200万回分 カウントする。 (Class)
 command /class:
