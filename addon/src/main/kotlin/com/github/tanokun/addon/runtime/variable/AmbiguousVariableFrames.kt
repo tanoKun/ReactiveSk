@@ -3,11 +3,11 @@ package com.github.tanokun.addon.runtime.variable
 import java.util.*
 
 object AmbiguousVariableFrames {
-    val frames: WeakHashMap<Any, Array<Any?>> = WeakHashMap()
+    val frames: WeakHashMap<Any, ArrayList<Any?>> = WeakHashMap()
 
     @JvmStatic
-    fun beginFrame(event: Any, capacity: Int) {
-        frames[event] = arrayOfNulls(capacity)
+    fun beginFrame(event: Any) {
+        frames[event] = arrayListOf()
     }
 
     @JvmStatic

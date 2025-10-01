@@ -27,7 +27,6 @@ import java.lang.reflect.Method
  * class セクション内で function セクションを宣言し、Skript の TriggerItem 連結と格納を行います。
  */
 class FunctionDefinitionInjector : Section() {
-
     companion object {
         init {
             Skript.registerSection(FunctionDefinitionInjector::class.java,

@@ -22,7 +22,7 @@ class GetLocalTypedVariableExpression: Expression<Any> {
         init {
             Skript.registerExpression(
                 GetLocalTypedVariableExpression::class.java, Any::class.java, ExpressionType.COMBINED,
-                "\\[%*identifier%\\]"
+                "\\[%identifier%\\]"
             )
         }
     }

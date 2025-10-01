@@ -53,7 +53,7 @@ class FieldsDefiner(
         modifiers: Int
     ): DynamicType.Builder<*> {
         return builder
-            .defineField(fieldOf(name), fieldType, Modifier.PUBLIC)
+            .defineField(internalFieldOf(name), fieldType, Modifier.PUBLIC)
             .annotateField(ModifierMetadata(modifiers))
     }
 
@@ -65,7 +65,7 @@ class FieldsDefiner(
             actualType.asGenericType(),
             false,
             Assigner.Typing.DYNAMIC,
-            fieldOf(name),
+            internalFieldOf(name),
         )
         return Advice.withCustomMapping()
             .bind(Advice.OffsetMapping.Factory.Simple(Advice.FieldValue::class.java, fieldMapping))
@@ -117,7 +117,7 @@ class FieldsDefiner(
         return MethodCall.invoke(CHECK_TYPES_METHOD)
             .withArgument(0)
             .with(actualType)
-            .andThen(FieldAccessor.ofField(fieldOf(name)).setsArgumentAt(0))
+            .andThen(FieldAccessor.ofField(internalFieldOf(name)).setsArgumentAt(0))
     }
 
     private fun buildNotifyImpl(
@@ -127,7 +127,7 @@ class FieldsDefiner(
         return base.andThen(
             MethodCall.invoke(NOTIFY_METHOD)
                 .withThis()
-                .withField(fieldOf(name))
+                .withField(internalFieldOf(name))
                 .withArgument(0)
                 .with(name)
         )

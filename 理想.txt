@@ -1,0 +1,43 @@
+
+lang/ #理想はskriptと分離。
+- Identifier
+- PropertyModifiers
+- ClassDefinition # ClassDefinition.Constructor.Parameter みたいになる感じ
+- - Field
+- - Constructor
+- - - Parameter
+- - - Initialization
+- - Function
+- - - Parameter
+- TypedVariableDeclaration
+
+compiler/ #理想はskriptと分離。
+- frontend/
+- - ast/
+- - - flow/
+- - - - result/
+- - - - - Diagnostic
+- - - - - Severity
+- - - - AbstractDataFlowAnalyzer #抽象
+- - - - ExhaustiveFunctionReturnAnalyzer
+- - - - ExhaustiveResolveFieldAnalyzer
+- - - AstNode # 内部的に、lineNumber と line を持つ。
+- - parser/
+- - - DynamicClassVisitor
+- - - DynamicClassIndentLexer
+- - variable/
+- - - TypedVariableResolver #singletonで、Top に AstNode.Struct をkeyにTypedVariableScopeを解決する。
+- - - TypedVariableScope # AstNode.Struct に対応するものを SectionId を利用してSkriptのロードで解決する。 (あらかじめの解決はしない)
+- backend/
+- - generator/
+- - - ClassGenerator
+
+skript/
+- rule/
+- - data/
+- - - ExpressionData # SkriptのExpressionから必要な情報だけを引き抜いたデータ。
+- - DeclarationTypedVariableRule
+- ast/
+- - AstBuilder #具体 IfNodeResolver, LoopNodeResolver などを使って実装する。
+- - IfNodeResolver #抽象
+- - LoopNodeResolver #抽象

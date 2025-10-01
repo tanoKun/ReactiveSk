@@ -16,7 +16,7 @@ class NonSuspendCallFunctionEffect : Effect() {
         init {
             Skript.registerEffect(
                 NonSuspendCallFunctionEffect::class.java,
-                "call %*identifier% in %object% [with %-objects%]"
+                "call %identifier% in %object% [with %-objects%]"
             )
         }
     }

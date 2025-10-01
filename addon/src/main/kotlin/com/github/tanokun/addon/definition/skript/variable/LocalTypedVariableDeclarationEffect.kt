@@ -24,10 +24,10 @@ class LocalTypedVariableDeclarationEffect: Effect() {
     companion object {
         init {
             Skript.registerEffect(LocalTypedVariableDeclarationEffect::class.java,
-                "val %*identifier% [\\(%-classinfo%\\)] \\:= %object%",
-                "var %*identifier% [\\(%-classinfo%\\)] \\:= %object%",
-                "val %*identifier% \\(%-classinfo%\\)",
-                "var %*identifier% \\(%-classinfo%\\)",
+                "val %identifier% [\\(%-classinfo%\\)] \\:= %object%",
+                "var %identifier% [\\(%-classinfo%\\)] \\:= %object%",
+                "val %identifier% \\(%-classinfo%\\)",
+                "var %identifier% \\(%-classinfo%\\)",
             )
         }
     }
@@ -125,11 +125,7 @@ class LocalTypedVariableDeclarationEffect: Effect() {
 
     override fun execute(e: Event) {
         if (isFirstDeclaration) {
-            variableCapacity =
-                if (variableCapacity == -1) TypedVariableResolver.getIndexInNode(topNode) + 1
-                else variableCapacity
-
-            AmbiguousVariableFrames.beginFrame(e, variableCapacity)
+            AmbiguousVariableFrames.beginFrame(e)
         }
 
         definitionExpr?.let {

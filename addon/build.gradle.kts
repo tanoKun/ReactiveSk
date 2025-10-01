@@ -8,8 +8,16 @@ plugins {
     alias(libs.plugins.antlr)
 }
 
-group = "com.github.tanokun"
-version = "developing"
+repositories {
+    mavenCentral()
+
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
+    maven("https://repo.skriptlang.org/releases")
+    maven("https://repo.songoda.com/repository/public/")
+
+    maven("https://jitpack.io")
+}
 
 kotlin {
     jvmToolchain(8)
@@ -47,25 +55,15 @@ sourceSets {
     }
 }
 
-repositories {
-    mavenCentral()
-
-    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
-    maven("https://repo.skriptlang.org/releases")
-}
-
 dependencies {
-    compileOnly(libs.spigot.api)
-    compileOnly(libs.skript.api)
+    compileOnly(libs.spigot)
+    compileOnly(libs.skript.api.v263)
     implementation(libs.antlr.kotlin.runtime)
     implementation(libs.kotlinx.coroutines)
     implementation(libs.bundles.mccoroutine)
     implementation(libs.bytebuddy)
     antlr(libs.antlr.tool)
 
-    testImplementation(libs.skript.api)
-    testImplementation(libs.spigot.api)
     testImplementation(libs.mockk)
     testImplementation(kotlin("test"))
 }
@@ -99,6 +97,7 @@ tasks {
 bukkit {
     main = "com.github.tanokun.addon.ReactiveSkAddon"
     name = "ReactiveSk"
+    loadBefore = listOf("Skript")
 
     depend = listOf("Skript")
     version = "1.0.0"

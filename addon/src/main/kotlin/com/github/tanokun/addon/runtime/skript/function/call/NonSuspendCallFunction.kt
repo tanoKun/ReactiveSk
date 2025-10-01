@@ -84,7 +84,7 @@ object NonSuspendCallFunction {
             return null
         }
 
-        val functionReturnType = method.returnType
+        val functionReturnType = methodMetadata.returnType.java
 
         return CallFunction(targetExpr, methodHandleCaller, methodHandle, argumentExprs, functionReturnType)
     }

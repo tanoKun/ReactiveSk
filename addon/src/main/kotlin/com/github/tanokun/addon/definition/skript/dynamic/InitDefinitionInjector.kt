@@ -15,8 +15,8 @@ import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.intermediate.generator.INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY
-import com.github.tanokun.addon.intermediate.generator.INTERNAL_INIT_TRIGGER_SECTION
+import com.github.tanokun.addon.intermediate.generator.CONSTRUCTOR_LOCALS_CAPACITY
+import com.github.tanokun.addon.intermediate.generator.CONSTRUCTOR_TRIGGER_SECTION
 import com.github.tanokun.addon.intermediate.parse.ast.SkriptAstBuilder
 import com.github.tanokun.addon.moduleManager
 import org.bukkit.event.Event
@@ -68,7 +68,7 @@ class InitDefinitionInjector: Section() {
         parser.currentSections.add(this)
 
         val (triggerItem, astRoot) = SkriptAstBuilder.buildFromSectionNode(sectionNode)
-        thisDynamicClass.getField(INTERNAL_INIT_TRIGGER_SECTION).set(null, triggerItem)
+        thisDynamicClass.getField(CONSTRUCTOR_TRIGGER_SECTION).set(null, triggerItem)
 
         val analyzer = InitSectionAnalyzer(astRoot, thisClassDefinition.className, thisClassDefinition.getRequiredInitializationFields())
         analyzeSection(analyzer, parser)
@@ -76,7 +76,7 @@ class InitDefinitionInjector: Section() {
         val localsAnalyzer = LocalTypedVariableCapacityAnalyzer(astRoot)
         val (_, localCapacity) = localsAnalyzer.analyze()
 
-        thisDynamicClass.getField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY).set(null, localCapacity + 1 + thisClassDefinition.constructorParameters.size)
+        thisDynamicClass.getField(CONSTRUCTOR_LOCALS_CAPACITY).set(null, localCapacity + 1 + thisClassDefinition.constructorParameters.size)
 
         parser.currentSections.remove(this)
 

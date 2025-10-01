@@ -13,7 +13,7 @@ import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.intermediate.generator.fieldOf
+import com.github.tanokun.addon.intermediate.generator.internalFieldOf
 import com.github.tanokun.addon.runtime.skript.observe.mediator.RuntimeObservingMediator
 import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
 import org.bukkit.event.Event
@@ -23,7 +23,7 @@ class ObserverSkriptEvent: SelfRegisteringSkriptEvent() {
     companion object {
         init {
             Skript.registerEvent("Observe", ObserverSkriptEvent::class.java, RuntimeObservingMediator::class.java,
-                "observe %dynamicclassinfo% factor %*identifier%"
+                "observe %dynamicclassinfo% factor %identifier%"
             )
         }
     }
@@ -41,7 +41,7 @@ class ObserverSkriptEvent: SelfRegisteringSkriptEvent() {
         dynamicClassInfo = args[0].getSingle(null) as DynamicClassInfo
         factor = (args[1].getSingle(null) as Identifier).identifier
 
-        val field = dynamicClassInfo.clazz.declaredFields.firstOrNull { it.name == fieldOf(factor) } ?: let {
+        val field = dynamicClassInfo.clazz.declaredFields.firstOrNull { it.name == internalFieldOf(factor) } ?: let {
             Skript.error("Cannot find field '$factor' in '${dynamicClassInfo.clazz.simpleName}'.")
             return false
         }
@@ -72,8 +72,7 @@ class ObserverSkriptEvent: SelfRegisteringSkriptEvent() {
 
     fun execute(e: Event, any: Any, old: Any?, new: Any?) {
         try {
-            val variableCapacity = TypedVariableResolver.getIndexInNode(topNode) + 1
-            AmbiguousVariableFrames.beginFrame(e, variableCapacity)
+            AmbiguousVariableFrames.beginFrame(e)
 
             AmbiguousVariableFrames.set(e, 0, any)
             AmbiguousVariableFrames.set(e, 1, old)
