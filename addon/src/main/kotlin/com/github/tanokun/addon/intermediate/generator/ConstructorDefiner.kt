@@ -97,12 +97,12 @@ class ConstructorDefiner(
                 )
             } else {
                 acc.andThen(
-                    FieldAccessor.ofField(fieldOf(p.parameterName.identifier))
+                    FieldAccessor.ofField(internalFieldOf(p.parameterName.identifier))
                         .setsArgumentAt(index + 1)
                 )
             }
         }.andThen(
-            MethodCall.invoke(named(INTERNAL_CONSTRUCTOR_PROXY))
+            MethodCall.invoke(named(CONSTRUCTOR_PROXY))
                 .withAllArguments()
         )
 
@@ -110,11 +110,11 @@ class ConstructorDefiner(
             .defineConstructor(Modifier.PUBLIC)
             .withParameters(*parameterTypes)
             .intercept(setProps)
-            .defineMethod(INTERNAL_CONSTRUCTOR_PROXY, Void.TYPE, Modifier.PRIVATE)
+            .defineMethod(CONSTRUCTOR_PROXY, Void.TYPE, Modifier.PRIVATE)
             .withParameters(*parameterTypes)
             .intercept(createConstructorProxyImplementation(classDefinition))
-            .defineField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY, Int::class.java, Modifier.PUBLIC or Modifier.STATIC)
-            .defineField(INTERNAL_INIT_TRIGGER_SECTION, TriggerItem::class.java, Modifier.PUBLIC or Modifier.STATIC)
+            .defineField(CONSTRUCTOR_LOCALS_CAPACITY, Int::class.java, Modifier.PUBLIC or Modifier.STATIC)
+            .defineField(CONSTRUCTOR_TRIGGER_SECTION, TriggerItem::class.java, Modifier.PUBLIC or Modifier.STATIC)
     }
 
     private fun createConstructorProxyImplementation(classDefinition: ClassDefinition): Implementation {
@@ -122,7 +122,7 @@ class ConstructorDefiner(
 
         val beginFrameImpl: Implementation.Composable = MethodCall.invoke(AmbiguousVariableFrames::class.java.getMethod("beginFrame", Any::class.java, Int::class.java))
             .withArgument(0)
-            .withField(INTERNAL_CONSTRUCTOR_LOCALS_CAPACITY)
+            .withField(CONSTRUCTOR_LOCALS_CAPACITY)
             .andThen(createSetTypedVariableImplementation(0) { it.withThis() })
 
         val setParamsImpl = constructorParameters.foldIndexed(beginFrameImpl) { index, acc, p ->
@@ -131,7 +131,7 @@ class ConstructorDefiner(
 
         val bodyImpl = setParamsImpl.andThen(
             MethodCall.invoke(TriggerItem::class.java.getMethod("walk", TriggerItem::class.java, Event::class.java))
-                .withField(INTERNAL_INIT_TRIGGER_SECTION)
+                .withField(CONSTRUCTOR_TRIGGER_SECTION)
                 .withArgument(0)
         )
 

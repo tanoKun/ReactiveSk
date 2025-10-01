@@ -61,12 +61,13 @@ class ModuleManager(
 
     fun resolveTypeDescription(typeName: Identifier, isArray: Boolean = false): TypeDescription {
         if (isArray) return TypeDescription.ForLoadedType.of(ArrayList::class.java)
-        if (typeName.identifier.equals("void", true)) return TypeDescription.ForLoadedType.of(Void.TYPE)
+        if (typeName.identifier == "void") return TypeDescription.ForLoadedType.of(Void.TYPE)
 
         loadedClasses[typeName]?.let { return TypeDescription.ForLoadedType.of(it) }
         classResolver(typeName)?.let { return TypeDescription.ForLoadedType.of(it) }
 
         val fqcn = "com.github.tanokun.addon.generated.$typeName"
+
         return SafeLatentTypeDescription(fqcn)
     }
 

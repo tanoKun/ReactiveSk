@@ -29,7 +29,7 @@ sealed interface TypedVariableDeclaration {
         override val index: Int = -1
 
         fun resolve(newIndex: Int): Resolved =
-            Resolved(variableName = variableName, type = type, isMutable = isMutable, depth = depth, index = newIndex,)
+            Resolved(variableName = variableName, type = type, isMutable = isMutable, depth = depth, index = newIndex)
     }
 
     data class Resolved(

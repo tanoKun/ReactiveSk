@@ -2,9 +2,6 @@ plugins {
     kotlin("jvm")
 }
 
-group = "com.github.tanokun"
-version = "developing"
-
 repositories {
     mavenCentral()
 }
@@ -15,6 +12,7 @@ dependencies {
     implementation(libs.bytebuddy)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.mockk)
 }
 
 tasks.test {

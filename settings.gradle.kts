@@ -19,3 +19,11 @@ plugins {
 rootProject.name = "ReactiveSk"
 
 include("addon")
+include("lang")
+include("compiler")
+include("compiler:frontend")
+include("compiler:backend")
+include("skript-adapter")
+include("skript-adapter:common")
+include("skript-adapter:v2_6_3")
+include("skript-addon")

@@ -1,27 +1,27 @@
 package com.github.tanokun.reactivesk.compiler.frontend.analyze.ast
 
+import com.github.tanokun.reactivesk.lang.Identifier
 
-sealed interface AstNode {
-    val lineNumber: Int
-    val line: String
+sealed interface AstNode<H> {
+    val handler: H?
 
-    data class ElseIf(val lineNumber: Int, val line: String, val thenSection: Block)
+    data class ElseIf<H>(val handler: H?, val thenSection: Struct<H>)
 
-    sealed interface Section : AstNode {
-        data class Loop(override val lineNumber: Int, override val line: String, val elements: List<AstNode>) : Section
-        data class Other(override val lineNumber: Int, override val line: String, val elements: List<AstNode>) : Section
-        data class If(
-            override val lineNumber: Int, override val line: String,
-            val thenSection: Block, val elseIfSections: List<ElseIf>, val elseSection: Block?
-        ) : Section
+    sealed interface Section<H> : AstNode<H> {
+        data class Loop<H>(override val handler: H?, val elements: List<AstNode<H>>) : Section<H>
+        data class Other<H>(override val handler: H?, val elements: List<AstNode<H>>) : Section<H>
+        data class If<H>(
+            override val handler: H?,
+            val thenSection: Struct<H>, val elseIfSections: List<ElseIf<H>>, val elseSection: Struct<H>?
+        ) : Section<H>
     }
 
-    data class Block(override val lineNumber: Int, override val line: String, val elements: List<AstNode>) : AstNode
+    data class Struct<H>(override val handler: H?, val elements: List<AstNode<H>>) : AstNode<H>
 
-    sealed interface Line: AstNode {
-        data class FunReturn(override val lineNumber: Int, override val line: String) : Line
-        data class Other(override val lineNumber: Int, override val line: String) : Line
+    sealed interface Line<H>: AstNode<H> {
+        data class FunReturn<H>(override val handler: H?) : Line<H>
+        data class ResolveField<H>(override val handler: H?, val fieldName: Identifier) : Line<H>
+        data class Exit<H>(override val handler: H?) : Line<H>
+        data class Other<H>(override val handler: H?) : Line<H>
     }
-
-    data class Root(override val lineNumber: Int, override val line: String) : AstNode
 }

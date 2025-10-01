@@ -14,8 +14,8 @@ import com.github.tanokun.addon.definition.skript.dynamic.InitDefinitionInjector
 import com.github.tanokun.addon.definition.variable.TypedVariableResolver
 import com.github.tanokun.addon.definition.variable.getDepth
 import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.intermediate.generator.fieldOf
 import com.github.tanokun.addon.intermediate.generator.internalArrayListSetterOf
+import com.github.tanokun.addon.intermediate.generator.internalFieldOf
 import com.github.tanokun.addon.intermediate.generator.internalSetterOf
 import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
 import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
@@ -31,7 +31,7 @@ class ResolveTypedValueFieldEffect: Effect() {
     companion object {
         init {
             Skript.registerEffect(ResolveTypedValueFieldEffect::class.java,
-                "resolve %*identifier% \\:= %object%"
+                "resolve %identifier% \\:= %object%"
             )
         }
     }
@@ -66,7 +66,7 @@ class ResolveTypedValueFieldEffect: Effect() {
         }
 
         parseNode = parser.node ?: return false
-        val internalFieldName = fieldOf(fieldName.identifier)
+        val internalFieldName = internalFieldOf(fieldName.identifier)
         val clazz = injector.thisDynamicClass
 
         val targetFields = injector.thisClassDefinition.getRequiredInitializationFields().map { it.fieldName }

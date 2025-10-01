@@ -89,8 +89,9 @@ class DynamicClassDefinitionVisitor : DynamicClassDefinitionBaseVisitor<Any>() {
     override fun visitFunction(ctx: FunctionContext): ClassDefinition.Function {
         val functionName = ctx.name.toIdentifier()
         val returns = ctx.functionReturn()?.let { visitFunctionReturn(it) }
-            ?: ClassDefinition.Function.Returns(Identifier("void"), false) // デフォルトの戻り値
+            ?: ClassDefinition.Function.Returns(Identifier("void"), false)
 
+        val modifiers = visitAccessModifiers(ctx.accessModifiers())
         val parameters = ctx.functionArguments()?.let { visitFunctionArguments(it) } ?: emptyList()
         val throws = ctx.throwsList()?.let { visitThrowsList(it) } ?: emptyList()
 
@@ -98,6 +99,7 @@ class DynamicClassDefinitionVisitor : DynamicClassDefinitionBaseVisitor<Any>() {
             functionName = functionName,
             returns = returns,
             parameters = parameters,
+            modifiers = modifiers,
             throws = throws
         )
     }

@@ -96,7 +96,7 @@ class Test2[var count: Test]:
             println("Successfully instantiated: $counterInstance")
 
             // 以前のテストと同様のランタイム呼び出し
-            AmbiguousVariableFrames.beginFrame(test, 1)
+            AmbiguousVariableFrames.beginFrame(test)
             AmbiguousVariableFrames.set(test, 0, "aaaa")
 
         } finally {

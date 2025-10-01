@@ -17,7 +17,7 @@ class NonSuspendCallFunctionExpression : SimpleExpression<Any>() {
         init {
             Skript.registerExpression(
                 NonSuspendCallFunctionExpression::class.java, Any::class.java, ExpressionType.COMBINED,
-                "call %*identifier% in %object% [with %-objects%]"
+                "call %identifier% in %object% [with %-objects%]"
             )
         }
     }
@@ -46,7 +46,7 @@ class NonSuspendCallFunctionExpression : SimpleExpression<Any>() {
         return if (returnValue != null) arrayOf(returnValue) else emptyArray()
     }
 
-    override fun toString(e: Event?, debug: Boolean): String = "call function with ${callFunction.argumentExprs.map { it.toString(e, debug) }.reduceOrNull { acc, s -> "$acc, $s" }} in ${callFunction.targetExpr.toString(e, debug)}"
+    override fun toString(e: Event?, debug: Boolean): String = "call function in ${callFunction.targetExpr.toString(e, debug)} with ${callFunction.argumentExprs.map { it.toString(e, debug) }.reduceOrNull { acc, s -> "$acc, $s" }}"
 
     override fun isSingle(): Boolean = true
 

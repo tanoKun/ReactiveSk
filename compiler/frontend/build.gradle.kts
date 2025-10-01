@@ -3,9 +3,6 @@ plugins {
     antlr
 }
 
-group = "com.github.tanokun"
-version = "developing"
-
 repositories {
     mavenCentral()
 }
@@ -16,6 +13,7 @@ dependencies {
     antlr(libs.antlr.tool)
 
     testImplementation(kotlin("test"))
+    implementation(kotlin("test"))
 }
 
 tasks.generateGrammarSource {

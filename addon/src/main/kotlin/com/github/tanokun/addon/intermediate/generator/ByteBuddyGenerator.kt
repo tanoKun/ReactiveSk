@@ -8,6 +8,7 @@ import net.bytebuddy.ClassFileVersion
 import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.dynamic.DynamicType
 import net.bytebuddy.dynamic.scaffold.TypeValidation
+import java.io.File
 import java.lang.reflect.Modifier
 
 class ByteBuddyGenerator(private val moduleManager: ModuleManager) {
@@ -28,6 +29,6 @@ class ByteBuddyGenerator(private val moduleManager: ModuleManager) {
         builder = methodsDefiner.defineAllMethods(builder, classDefinition)
         builder = constructorDefiner.defineConstructor(builder, classDefinition)
 
-        return builder.make()
+        return builder.make().apply { this.saveIn(File("generated-classes")) }
     }
 }

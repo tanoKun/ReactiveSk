@@ -9,7 +9,7 @@ import ch.njol.util.Checker
 import ch.njol.util.Kleenean
 import com.github.tanokun.addon.definition.Identifier
 import com.github.tanokun.addon.definition.dynamic.DynamicClass
-import com.github.tanokun.addon.intermediate.generator.fieldOf
+import com.github.tanokun.addon.intermediate.generator.internalFieldOf
 import com.github.tanokun.addon.intermediate.metadata.ModifierMetadata
 import com.github.tanokun.addon.runtime.DynamicAccessChecks.checkAccessError
 import org.bukkit.event.Event
@@ -25,7 +25,7 @@ class GetTypedValueFieldExpression: Expression<Any> {
         init {
             Skript.registerExpression(
                 GetTypedValueFieldExpression::class.java, Any::class.java, ExpressionType.PROPERTY,
-                "%object%.%*identifier%[.]"
+                "%object%.%identifier%[.]"
             )
         }
     }
@@ -60,7 +60,7 @@ class GetTypedValueFieldExpression: Expression<Any> {
             return false
         }
 
-        val internalFieldName = fieldOf(fieldName.identifier)
+        val internalFieldName = internalFieldOf(fieldName.identifier)
 
         val clazz = targetExpr.getReturnType()
 

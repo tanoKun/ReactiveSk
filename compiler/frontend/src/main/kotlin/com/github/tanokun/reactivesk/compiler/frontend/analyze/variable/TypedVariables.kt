@@ -10,7 +10,7 @@ data class Table(
 class TypedVariables(
     private val table: Table = Table(),
     private val sectionIds: MutableMap<Depth, SectionId> = mutableMapOf(),
-    private val lastSection: MutableMap<Depth, AstNode.Section?> = mutableMapOf(),
+    private val lastSection: MutableMap<Depth, AstNode.Section<*>?> = mutableMapOf(),
     var index: Int = 0
 ) {
     fun getSectionId(depth: Depth): SectionId = sectionIds[depth] ?: 0
@@ -21,9 +21,9 @@ class TypedVariables(
         ensureSectionTable(depth, sectionId)
     }
 
-    fun getLastSection(depth: Depth): AstNode.Section? = lastSection[depth]
+    fun getLastSection(depth: Depth): AstNode.Section<*>? = lastSection[depth]
 
-    fun setLastSection(depth: Depth, section: AstNode.Section?) {
+    fun setLastSection(depth: Depth, section: AstNode.Section<*>?) {
         lastSection[depth] = section
     }
 
