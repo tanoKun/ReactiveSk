@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.runtime.skript.init
+package com.github.tanokun.reactivesk.v263.skript.runtime.instantiation
 
 import ch.njol.skript.Skript
 import ch.njol.skript.config.Node
@@ -9,32 +9,35 @@ import ch.njol.skript.sections.SecLoop
 import ch.njol.skript.sections.SecWhile
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.definition.skript.dynamic.InitDefinitionInjector
-import com.github.tanokun.addon.definition.variable.TypedVariableResolver
-import com.github.tanokun.addon.definition.variable.getDepth
-import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.intermediate.generator.internalArrayListSetterOf
-import com.github.tanokun.addon.intermediate.generator.internalFieldOf
-import com.github.tanokun.addon.intermediate.generator.internalSetterOf
-import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
-import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
+import com.github.tanokun.reactivesk.compiler.backend.codegen.util.internalArrayListSetterOf
+import com.github.tanokun.reactivesk.compiler.backend.codegen.util.internalFieldOf
+import com.github.tanokun.reactivesk.compiler.backend.codegen.util.internalSetterOf
+import com.github.tanokun.reactivesk.lang.Identifier
+import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
+import com.github.tanokun.reactivesk.v263.ReactiveSkAddon
+import com.github.tanokun.reactivesk.v263.skript.resolve.clazz.ConstructorInjectorSection
+import com.github.tanokun.reactivesk.v263.skript.runtime.instantiation.mediator.RuntimeConstructorMediator
+import com.github.tanokun.reactivesk.v263.skript.util.getDepth
+import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 
 @Suppress("UNCHECKED_CAST")
-class ResolveTypedValueFieldEffect: Effect() {
+class ResolveFieldValueEffect: Effect() {
     private val lookup = MethodHandles.publicLookup()
 
     companion object {
-        init {
-            Skript.registerEffect(ResolveTypedValueFieldEffect::class.java,
+        fun register() {
+            Skript.registerEffect(
+                ResolveFieldValueEffect::class.java,
                 "resolve %identifier% \\:= %object%"
             )
         }
     }
+
+    private val typedVariableResolver = ReactiveSkAddon.typedVariableResolver
 
     lateinit var fieldName: Identifier
         private set
@@ -55,10 +58,13 @@ class ResolveTypedValueFieldEffect: Effect() {
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
 
-        val injector = parser.currentSections.firstOrNull { it is InitDefinitionInjector } as? InitDefinitionInjector ?: let {
-            Skript.error("Cannot resolve typed value field because it's not init section.")
-            return false
-        }
+        val injector = parser.currentSections
+            .filterIsInstance<ConstructorInjectorSection>()
+            .firstOrNull()
+            ?: let {
+                Skript.error("Cannot resolve typed value field because it's not constructor section.")
+                return false
+            }
 
         fieldName = (exprs[0] as Expression<Identifier>).getSingle(null) ?: let {
             Skript.error("Field name is not specified. ${exprs[1]}")
@@ -67,9 +73,9 @@ class ResolveTypedValueFieldEffect: Effect() {
 
         parseNode = parser.node ?: return false
         val internalFieldName = internalFieldOf(fieldName.identifier)
-        val clazz = injector.thisDynamicClass
+        val clazz = injector.resolvingClass.clazz
 
-        val targetFields = injector.thisClassDefinition.getRequiredInitializationFields().map { it.fieldName }
+        val targetFields = injector.resolvingClass.definition.uninitializedProperty.map { it.propertyName }
 
         if (!targetFields.contains(fieldName)) {
             Skript.error("This field '$fieldName' is not required to be initialized in '${clazz.simpleName}'.")
@@ -117,9 +123,9 @@ class ResolveTypedValueFieldEffect: Effect() {
         val depth = parseNode.getDepth()
         val topNode = parseNode.getTopNode()
 
-        TypedVariableResolver.touchSection(topNode, depth, parser.currentSections.lastOrNull())
+        typedVariableResolver.touchSection(topNode, depth, parser.currentSections.lastOrNull())
 
-        TypedVariableResolver.getDeclarationInScopeChain(topNode, depth, Identifier("this")) ?: let {
+        typedVariableResolver.getDeclarationInScopeChain(topNode, depth, Identifier("this")) ?: let {
             Skript.error("Cannot find 'this' variable in scope chain.")
             return false
         }
@@ -141,7 +147,7 @@ class ResolveTypedValueFieldEffect: Effect() {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is ResolveTypedValueFieldEffect) return false
+        if (other !is ResolveFieldValueEffect) return false
 
         if (fieldName != other.fieldName) return false
 
