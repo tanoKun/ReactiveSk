@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.runtime.skript.init
+package com.github.tanokun.reactivesk.v263.skript.runtime.instantiation
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Expression
@@ -8,26 +8,24 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.definition.DynamicClassInfo
-import com.github.tanokun.addon.runtime.MethodHandleInvokerUtil
-import com.github.tanokun.addon.runtime.skript.init.mediator.RuntimeConstructorMediator
-import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
+import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
+import com.github.tanokun.reactivesk.v263.ReactiveSkAddon.Companion.constructorCallers
+import com.github.tanokun.reactivesk.v263.caller.method.ConstructorCaller
+import com.github.tanokun.reactivesk.v263.skript.DynamicClassInfo
+import com.github.tanokun.reactivesk.v263.skript.runtime.instantiation.mediator.RuntimeConstructorMediator
 import org.bukkit.event.Event
-import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
 import java.lang.reflect.InvocationTargetException
 
 @Suppress("UNCHECKED_CAST")
-class NewInstanceExpression: SimpleExpression<Any>() {
-    private val lookup = MethodHandles.publicLookup()
-
+class InstantiationExpression: SimpleExpression<Any>() {
     companion object {
-        init {
+        fun register() {
             Skript.registerExpression(
-                NewInstanceExpression::class.java,
+                InstantiationExpression::class.java,
                 Any::class.java,
                 ExpressionType.SIMPLE,
-                "create %*dynamicclassinfo% [with %-objects%]"
+                "(new | create) %*dynamicclassinfo% [with %-objects%]",
+                "(new | create) %*dynamicclassinfo%\\([%-objects%]\\)"
             )
         }
     }
@@ -36,15 +34,15 @@ class NewInstanceExpression: SimpleExpression<Any>() {
 
     private lateinit var dynamicClassInfo: DynamicClassInfo
 
-    private lateinit var methodHandle: (Array<*>, RuntimeConstructorMediator) -> Any
+    private lateinit var constructorCaller: ConstructorCaller
 
     override fun init(
-        exprs: Array<out Expression<*>>,
+        exprs: Array<out Expression<*>?>,
         matchedPattern: Int,
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
-        val argumentsExpr: Expression<Any> = LiteralUtils.defendExpression(exprs[1])
+        val argumentsExpr: Expression<Any> = LiteralUtils.defendExpression(exprs[1] ?: ExpressionList(emptyArray(), Any::class.java, true))
 
         argumentExprs =
             if (argumentsExpr is ExpressionList<*>)
@@ -65,16 +63,24 @@ class NewInstanceExpression: SimpleExpression<Any>() {
 
         val argumentTypes = argumentExprs.map(Expression<Any>::getReturnType).toTypedArray()
 
-        try {
-            val constructor = dynamicClassInfo.clazz.getDeclaredConstructor(*arrayOf(RuntimeConstructorMediator::class.java, *argumentTypes))
+        val constructor = dynamicClassInfo.clazz
+            .declaredConstructors
+            .filter { it.parameterCount - 1 == argumentTypes.size }
+            .firstOrNull {
+                it.parameters
+                    .drop(1)
+                    .filterIndexed { index, param -> !param.type.isAssignableFrom(argumentTypes[index]) }
+                    .isEmpty()
+            }
 
-            val constructorHandle = lookup
-                .unreflectConstructor(constructor)
-                .asType(MethodType.methodType(Any::class.java, Array(argumentTypes.size + 1) { Any::class.java }))
-            methodHandle = MethodHandleInvokerUtil.buildConstructor(argumentTypes.size, constructorHandle)
-        } catch (_: NoSuchMethodException) {
+        if (constructor == null) {
             val argLine = argumentTypes.map { it.simpleName }.reduceOrNull { acc, type -> "$acc, $type" }
-            Skript.error("Cannot find constructor with (${argLine}) in ${dynamicClassInfo}.")
+            Skript.error("Cannot find constructor with (${argLine ?: ""}) in ${dynamicClassInfo.classDefinition.className}.")
+            return false
+        }
+
+        constructorCaller = constructorCallers.get(constructor) ?: let {
+            Skript.error("Internal error: ConstructorCaller for constructor with (${argumentTypes.map { it.simpleName }.reduceOrNull { acc, type -> "$acc, $type" }}) in ${dynamicClassInfo.classDefinition.className} is not found.")
             return false
         }
 
@@ -87,7 +93,7 @@ class NewInstanceExpression: SimpleExpression<Any>() {
         val mediator = RuntimeConstructorMediator()
 
         try {
-            return arrayOf(methodHandle(arguments, mediator))
+            return arrayOf(constructorCaller.call(mediator, *arguments))
         } catch (e: InvocationTargetException) {
             Skript.error("Failed to create instance of '${dynamicClassInfo.clazz.simpleName}' with arguments (${arguments.reduceOrNull { acc, any -> "$acc, $any" }}) -> ${e.targetException.message}.")
         } finally {
