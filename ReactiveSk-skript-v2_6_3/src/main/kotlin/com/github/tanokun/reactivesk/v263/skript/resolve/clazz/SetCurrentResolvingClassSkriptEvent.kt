@@ -1,16 +1,14 @@
-package com.github.tanokun.reactivesk.skriptadapter.v2_6_3.skript.resolve
+package com.github.tanokun.reactivesk.v263.skript.resolve.clazz
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Literal
 import ch.njol.skript.lang.SkriptEvent
 import ch.njol.skript.lang.SkriptParser
 import com.github.tanokun.reactivesk.lang.Identifier
-import com.github.tanokun.reactivesk.skriptadapter.common.dynamic.DynamicClassDefinitionLoader
-import com.github.tanokun.reactivesk.skriptadapter.common.dynamic.DynamicManager
-import com.github.tanokun.reactivesk.skriptadapter.common.skript.CurrentClassParserPatch.currentResolvingClass
-import com.github.tanokun.reactivesk.skriptadapter.common.skript.ResolvingClass
+import com.github.tanokun.reactivesk.v263.ReactiveSkAddon
+import com.github.tanokun.reactivesk.v263.skript.resolve.patch.CurrentClassParserPatch.currentResolvingClass
+import com.github.tanokun.reactivesk.v263.skript.resolve.patch.ResolvingClass
 import org.bukkit.event.Event
-import org.koin.java.KoinJavaComponent.inject
 
 /**
  * Skript の class セクションを解釈するための疑似イベントです。
@@ -19,18 +17,13 @@ import org.koin.java.KoinJavaComponent.inject
  */
 class SetCurrentResolvingClassSkriptEvent : SkriptEvent() {
 
-    private val dynamicManager: DynamicManager by inject(DynamicManager::class.java)
+    private val dynamicManager = ReactiveSkAddon.dynamicManager
 
-    private val definitionLoader: DynamicClassDefinitionLoader by inject(DynamicClassDefinitionLoader::class.java)
+    private val definitionLoader = ReactiveSkAddon.definitionLoader
 
     companion object {
         fun register() {
-            Skript.registerEvent(
-                "*class",
-                SetCurrentResolvingClassSkriptEvent::class.java,
-                arrayOf(),
-                "class <.+>"
-            )
+            Skript.registerEvent("*class", SetCurrentResolvingClassSkriptEvent::class.java, arrayOf(), "class <.+>")
         }
     }
 
@@ -44,7 +37,7 @@ class SetCurrentResolvingClassSkriptEvent : SkriptEvent() {
             .split(" ", limit = 3)[1].split("[", limit = 2)[0]
             .let { return@let Identifier(it) }
 
-        val dynamicClassDefinition = definitionLoader.getClassDefinition(classNameIdentifier) ?:  throw IllegalStateException("Cannot find class '$classNameIdentifier'.")
+        val dynamicClassDefinition = definitionLoader.getClassDefinition(classNameIdentifier) ?: throw IllegalStateException("Cannot find class '$classNameIdentifier'.")
         val dynamicClass = dynamicManager.getLoadedClass(classNameIdentifier) ?: throw IllegalStateException("Cannot find class '$classNameIdentifier'.")
 
         parser.currentResolvingClass = ResolvingClass(dynamicClassDefinition, dynamicClass)
