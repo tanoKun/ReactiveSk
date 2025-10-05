@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.runtime.skript
+package com.github.tanokun.reactivesk.v263.skript.runtime
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Expression
