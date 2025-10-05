@@ -1,3 +1,0 @@
-package com.github.tanokun.reactivesk.skriptadapter.common.mediator
-
-interface RuntimeConstructorMediator
