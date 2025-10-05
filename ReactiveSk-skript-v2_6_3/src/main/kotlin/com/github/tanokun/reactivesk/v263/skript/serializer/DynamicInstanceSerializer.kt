@@ -1,9 +1,9 @@
-package com.github.tanokun.addon.runtime.skript.serializer
+package com.github.tanokun.reactivesk.v263.skript.serializer
 
 import ch.njol.skript.classes.Serializer
 import ch.njol.yggdrasil.Fields
-import com.github.tanokun.addon.intermediate.generator.FIELD_PREFIX
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
+import com.github.tanokun.reactivesk.compiler.backend.codegen.util.FIELD_PREFIX
+import com.github.tanokun.reactivesk.v263.skript.DynamicClass
 
 
 class DynamicInstanceSerializer<T: DynamicClass>: Serializer<T>() {

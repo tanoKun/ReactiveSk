@@ -1,12 +1,11 @@
-package com.github.tanokun.addon
+package com.github.tanokun.reactivesk.v263
 
 import ch.njol.skript.classes.ClassInfo
 import ch.njol.skript.classes.Parser
 import ch.njol.skript.lang.ParseContext
 import ch.njol.skript.registrations.Classes
-import com.github.tanokun.addon.definition.DynamicClassInfo
-import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
+import com.github.tanokun.reactivesk.lang.Identifier
+import com.github.tanokun.reactivesk.v263.skript.DynamicClassInfo
 
 val identifierPattern = "[_a-zA-Z][a-zA-Z0-9]*".toRegex()
 
@@ -57,10 +56,10 @@ object ClassesRegister {
                 override fun parse(s: String, context: ParseContext): DynamicClassInfo? {
                     val className = Identifier(s)
 
-                    val classDefinition = moduleManager.definitionLoader.getClassDefinition(className) ?: return null
-                    val dynamicClass = moduleManager.getLoadedClass(className) ?: return null
+                    val classDefinition = ReactiveSkAddon.dynamicManager.definitionLoader.getClassDefinition(className) ?: return null
+                    val dynamicClass = ReactiveSkAddon.dynamicManager.getLoadedClass(className) ?: return null
 
-                    return DynamicClassInfo(classDefinition, dynamicClass as Class<out DynamicClass>)
+                    return DynamicClassInfo(classDefinition, dynamicClass)
                 }
 
                 override fun toString(o: DynamicClassInfo, flags: Int): String = o.toString()
