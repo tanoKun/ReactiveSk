@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.runtime.skript.field
+package com.github.tanokun.reactivesk.v263.skript.runtime.variable.field
 
 import ch.njol.skript.Skript
 import ch.njol.skript.classes.Changer
@@ -7,11 +7,11 @@ import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.util.Checker
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
-import com.github.tanokun.addon.intermediate.generator.internalFieldOf
-import com.github.tanokun.addon.intermediate.metadata.ModifierMetadata
-import com.github.tanokun.addon.runtime.DynamicAccessChecks.checkAccessError
+import com.github.tanokun.reactivesk.compiler.backend.codegen.util.internalFieldOf
+import com.github.tanokun.reactivesk.compiler.backend.metadata.ModifierMetadata
+import com.github.tanokun.reactivesk.lang.Identifier
+import com.github.tanokun.reactivesk.v263.skript.DynamicClass
+import com.github.tanokun.reactivesk.v263.skript.runtime.DynamicAccessChecks.checkAccessError
 import org.bukkit.event.Event
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
@@ -22,10 +22,11 @@ class GetTypedValueFieldExpression: Expression<Any> {
     private val lookup = MethodHandles.publicLookup()
 
     companion object {
-        init {
+        fun register() {
             Skript.registerExpression(
                 GetTypedValueFieldExpression::class.java, Any::class.java, ExpressionType.PROPERTY,
-                "%object%.%identifier%[.]"
+                "%object%(->|\\.)%identifier%",
+                "%identifier% of %object%"
             )
         }
     }
@@ -53,9 +54,12 @@ class GetTypedValueFieldExpression: Expression<Any> {
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
-        targetExpr = exprs[0] as Expression<Any>
+        val targetExprPattern = if (matchedPattern == 0) 0 else 1
+        val fieldNamePattern = if (matchedPattern == 0) 1 else 0
 
-        fieldName = (exprs[1] as Expression<Identifier>).getSingle(null) ?: let {
+        targetExpr = exprs[targetExprPattern] as Expression<Any>
+
+        fieldName = (exprs[fieldNamePattern] as Expression<Identifier>).getSingle(null) ?: let {
             Skript.error("Field name is not specified. ${exprs[1]}")
             return false
         }
