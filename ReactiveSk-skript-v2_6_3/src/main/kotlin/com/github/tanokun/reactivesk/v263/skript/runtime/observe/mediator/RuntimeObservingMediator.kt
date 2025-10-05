@@ -1,7 +1,7 @@
-package com.github.tanokun.addon.runtime.skript.observe.mediator
+package com.github.tanokun.reactivesk.v263.skript.runtime.observe.mediator
 
-import com.github.tanokun.addon.definition.dynamic.DynamicClass
-import com.github.tanokun.addon.runtime.skript.observe.ObserverSkriptEvent
+import com.github.tanokun.reactivesk.v263.skript.DynamicClass
+import com.github.tanokun.reactivesk.v263.skript.runtime.observe.ObserverSkriptEvent
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
@@ -12,7 +12,9 @@ class RuntimeObservingMediator(): Event() {
         private val observers = hashMapOf<Class<out DynamicClass>, ArrayList<ObserverSkriptEvent>>()
 
         fun register(observer: ObserverSkriptEvent) {
-            observers.computeIfAbsent(observer.dynamicClassInfo.clazz) { arrayListOf() }.add(observer)
+            observers
+                .getOrPut(observer.dynamicClassInfo.clazz) { arrayListOf() }
+                .add(observer)
         }
 
         fun unregister(observer: ObserverSkriptEvent) {

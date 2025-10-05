@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.runtime.skript.observe
+package com.github.tanokun.reactivesk.v263.skript.runtime.observe
 
 import ch.njol.skript.Skript
 import ch.njol.skript.config.Node
@@ -7,26 +7,28 @@ import ch.njol.skript.lang.Literal
 import ch.njol.skript.lang.SelfRegisteringSkriptEvent
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.Trigger
-import com.github.tanokun.addon.definition.DynamicClassInfo
-import com.github.tanokun.addon.definition.Identifier
-import com.github.tanokun.addon.definition.variable.TypedVariableDeclaration
-import com.github.tanokun.addon.definition.variable.TypedVariableResolver
-import com.github.tanokun.addon.definition.variable.getDepth
-import com.github.tanokun.addon.definition.variable.getTopNode
-import com.github.tanokun.addon.intermediate.generator.internalFieldOf
-import com.github.tanokun.addon.runtime.skript.observe.mediator.RuntimeObservingMediator
-import com.github.tanokun.addon.runtime.variable.AmbiguousVariableFrames
+import com.github.tanokun.reactivesk.compiler.backend.codegen.util.internalFieldOf
+import com.github.tanokun.reactivesk.compiler.frontend.analyze.variable.TypedVariableDeclaration
+import com.github.tanokun.reactivesk.lang.Identifier
+import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
+import com.github.tanokun.reactivesk.v263.ReactiveSkAddon
+import com.github.tanokun.reactivesk.v263.skript.DynamicClassInfo
+import com.github.tanokun.reactivesk.v263.skript.runtime.observe.mediator.RuntimeObservingMediator
+import com.github.tanokun.reactivesk.v263.skript.util.getDepth
+import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event
 
 class ObserverSkriptEvent: SelfRegisteringSkriptEvent() {
 
     companion object {
-        init {
+        fun register() {
             Skript.registerEvent("Observe", ObserverSkriptEvent::class.java, RuntimeObservingMediator::class.java,
                 "observe %dynamicclassinfo% factor %identifier%"
             )
         }
     }
+
+    private val typedVariableResolver = ReactiveSkAddon.typedVariableResolver
 
     lateinit var factor: String
         private set
@@ -49,9 +51,15 @@ class ObserverSkriptEvent: SelfRegisteringSkriptEvent() {
         val depth = (parser.node as SectionNode).getDepth()
         topNode = (parser.node as SectionNode).getTopNode()
 
-        TypedVariableResolver.declare(topNode, TypedVariableDeclaration(Identifier("instance"), dynamicClassInfo.clazz, false, depth))
-        TypedVariableResolver.declare(topNode, TypedVariableDeclaration(Identifier("old"), field.type, false, depth))
-        TypedVariableResolver.declare(topNode, TypedVariableDeclaration(Identifier("new"), field.type, false, depth))
+        typedVariableResolver.declare(topNode,
+            TypedVariableDeclaration.Unresolved(Identifier("instance"), dynamicClassInfo.clazz, false, depth)
+        )
+        typedVariableResolver.declare(topNode,
+            TypedVariableDeclaration.Unresolved(Identifier("old"), field.type, false, depth)
+        )
+        typedVariableResolver.declare(topNode,
+            TypedVariableDeclaration.Unresolved(Identifier("new"), field.type, false, depth)
+        )
 
         return true
     }
@@ -70,11 +78,9 @@ class ObserverSkriptEvent: SelfRegisteringSkriptEvent() {
         RuntimeObservingMediator.unregisterAll()
     }
 
-    fun execute(e: Event, any: Any, old: Any?, new: Any?) {
+    fun execute(e: Event, instance: Any, old: Any?, new: Any?) {
         try {
-            AmbiguousVariableFrames.beginFrame(e)
-
-            AmbiguousVariableFrames.set(e, 0, any)
+            AmbiguousVariableFrames.set(e, 0, instance)
             AmbiguousVariableFrames.set(e, 1, old)
             AmbiguousVariableFrames.set(e, 2, new)
 
