@@ -1,4 +1,4 @@
-package com.github.tanokun.reactivesk.skriptadapter.v2_6_3.skript.resolve
+package com.github.tanokun.reactivesk.v263.skript.resolve.clazz
 
 import ch.njol.skript.Skript
 import ch.njol.skript.config.SectionNode
@@ -7,30 +7,33 @@ import ch.njol.skript.lang.Section
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.TriggerItem
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.intermediate.generator.CONSTRUCTOR_LOCALS_CAPACITY
 import com.github.tanokun.reactivesk.compiler.backend.codegen.util.CONSTRUCTOR_TRIGGER_SECTION
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.ConstructorAnalyzer
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.variable.TypedVariableDeclaration
-import com.github.tanokun.reactivesk.compiler.frontend.analyze.variable.TypedVariableResolver
 import com.github.tanokun.reactivesk.lang.Identifier
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.SkriptAstBuilder
-import com.github.tanokun.reactivesk.skriptadapter.common.dynamic.DynamicManager
-import com.github.tanokun.reactivesk.skriptadapter.common.skript.CurrentClassParserPatch.currentResolvingClass
-import com.github.tanokun.reactivesk.skriptadapter.common.skript.getDepth
-import com.github.tanokun.reactivesk.skriptadapter.common.skript.getTopNode
+import com.github.tanokun.reactivesk.v263.ReactiveSkAddon
+import com.github.tanokun.reactivesk.v263.ReactiveSkAddon.Companion.dynamicManager
+import com.github.tanokun.reactivesk.v263.skript.analyze.printlnToSkript
+import com.github.tanokun.reactivesk.v263.skript.resolve.patch.CurrentClassParserPatch.currentResolvingClass
+import com.github.tanokun.reactivesk.v263.skript.resolve.patch.ResolvingClass
+import com.github.tanokun.reactivesk.v263.skript.util.ReflectionClassesBySkript.getClassBySkript
+import com.github.tanokun.reactivesk.v263.skript.util.getDepth
+import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event
-import org.koin.java.KoinJavaComponent.inject
 
-class ConstructorResolverEffect: Section() {
+class ConstructorInjectorSection: Section() {
     companion object {
-        init {
-            Skript.registerSection(ConstructorResolverEffect::class.java, "init [<.+>]")
+        fun register() {
+            Skript.registerSection(ConstructorInjectorSection::class.java, "init [<.+>]")
         }
     }
 
-    private val astBuilder: SkriptAstBuilder by inject(SkriptAstBuilder::class.java)
+    private val typedVariableResolver = ReactiveSkAddon.typedVariableResolver
 
-    private val dynamicManager: DynamicManager by inject(DynamicManager::class.java)
+    private val astBuilder: SkriptAstBuilder<SectionNode, TriggerItem> = ReactiveSkAddon.skriptAstBuilder
+
+    lateinit var resolvingClass: ResolvingClass private set
 
     override fun init(
         exprs: Array<out Expression<*>>,
@@ -40,7 +43,7 @@ class ConstructorResolverEffect: Section() {
         sectionNode: SectionNode,
         triggerItems: List<TriggerItem>,
     ): Boolean {
-        val resolvingClass = parser.currentResolvingClass ?: let {
+        resolvingClass = parser.currentResolvingClass ?: let {
             Skript.error("'init' definition can only be used inside a 'class' section.")
             return false
         }
@@ -51,16 +54,16 @@ class ConstructorResolverEffect: Section() {
         val definition = resolvingClass.definition
         val clazz = resolvingClass.clazz
 
-        TypedVariableResolver.declare(topNode, TypedVariableDeclaration.Unresolved(Identifier("this"), clazz, false, depth))
+        typedVariableResolver.declare(topNode, TypedVariableDeclaration.Unresolved(Identifier("this"), clazz, false, depth))
 
         definition.constructor.parameters.forEach { param ->
             val variableName = param.parameterName
-            val resolvedType = dynamicManager.getLoadedClass(param.typeName) ?: let {
+            val resolvedType = dynamicManager.getLoadedClass(param.typeName) ?: getClassBySkript(param.typeName.identifier) ?: let {
                 Skript.error("Cannot resolve type '${param.typeName}' for '$variableName' in class '${definition.className}' init.")
                 return false
             }
 
-            TypedVariableResolver.declare(topNode, TypedVariableDeclaration.Unresolved(variableName, resolvedType, false, depth))
+            typedVariableResolver.declare(topNode, TypedVariableDeclaration.Unresolved(variableName, resolvedType, false, depth))
         }
 
         parser.currentSections.add(this)
@@ -68,13 +71,11 @@ class ConstructorResolverEffect: Section() {
         val (triggerItem, astRoot) = astBuilder.buildFromSectionNode(sectionNode)
         clazz.getField(CONSTRUCTOR_TRIGGER_SECTION).set(null, triggerItem)
 
-        val analyzer = ConstructorAnalyzer(astRoot, definition.className, definition.uninitializedProperty)
-        analyzeSection(analyzer, parser)
-
-        thisDynamicClass.getField(CONSTRUCTOR_LOCALS_CAPACITY).set(null, localCapacity + 1 + definition.constructor.parameters.size)
+        ConstructorAnalyzer(astRoot, definition.className, definition.uninitializedProperty)
+            .analyze()
+            .printlnToSkript(parser)
 
         parser.currentSections.remove(this)
-
 
         return true
     }
