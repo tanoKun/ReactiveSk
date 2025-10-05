@@ -66,7 +66,7 @@ tasks {
     val copyJarToPlugins by registering(Copy::class) {
         dependsOn(shadowJar)
         from(shadowJar.get().archiveFile)
-        into("C:/Users/owner/Desktop/1.12.2 paper/plugins")
+        into("C:/Users/owner/Desktop/1.17.1 paper/plugins")
     }
 
     shadowJar {

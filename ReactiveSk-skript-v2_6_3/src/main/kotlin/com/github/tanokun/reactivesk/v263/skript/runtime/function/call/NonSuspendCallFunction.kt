@@ -33,12 +33,14 @@ object NonSuspendCallFunction {
             return null
         }
 
-        val argumentsExpr: Expression<Any> = LiteralUtils.defendExpression(exprs[2] ?: ExpressionList(arrayOf(), Any::class.java, false))
+        val argumentsExpr: Expression<Any>? = exprs[2]?.let { LiteralUtils.defendExpression(it) }
 
         val argumentExprs =
-            if (argumentsExpr is ExpressionList<*>)
-                (argumentsExpr as ExpressionList<Any>).expressions as Array<Expression<Any>>
-            else arrayOf(argumentsExpr)
+            when (argumentsExpr) {
+                is ExpressionList<*> -> (argumentsExpr as ExpressionList<Any>).expressions as Array<Expression<Any>>
+                null -> arrayOf()
+                else -> arrayOf(argumentsExpr)
+            }
 
         argumentExprs.forEach {
             if (checkSingletonError(it)) return null
