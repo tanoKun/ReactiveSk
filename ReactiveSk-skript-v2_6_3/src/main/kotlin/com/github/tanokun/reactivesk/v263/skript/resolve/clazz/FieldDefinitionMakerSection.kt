@@ -1,4 +1,4 @@
-package com.github.tanokun.reactivesk.skriptadapter.v2_6_3.skript.resolve
+package com.github.tanokun.reactivesk.v263.skript.resolve.clazz
 
 import ch.njol.skript.Skript
 import ch.njol.skript.config.SectionNode
@@ -7,13 +7,13 @@ import ch.njol.skript.lang.Section
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.TriggerItem
 import ch.njol.util.Kleenean
-import com.github.tanokun.reactivesk.skriptadapter.common.skript.CurrentClassParserPatch.currentResolvingClass
+import com.github.tanokun.reactivesk.v263.skript.resolve.patch.CurrentClassParserPatch.currentResolvingClass
 import org.bukkit.event.Event
 
-class FieldDefinitionMaker: Section() {
+class FieldDefinitionMakerSection: Section() {
     companion object {
         fun register() {
-            Skript.registerSection(FieldDefinitionMaker::class.java, "field")
+            Skript.registerSection(FieldDefinitionMakerSection::class.java, "field")
         }
     }
 
