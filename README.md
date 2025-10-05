@@ -20,8 +20,8 @@ Skript に **オブジェクト指向・軽いリアクティブ**を使用し�
   * [クラス監視](#クラス監視)
     * [参照可能な変数](#参照可能な変数)
   * [通知 - Notify](#通知---notify)
-* [例](#例)
-  * [カウンタークラス](#カウンタークラス)
+* [文法要約](#文法要約)
+* [例: 完全なクラスサンプル](#例-完全なクラスサンプル)
 <!-- TOC -->
 
 # クラス定義
@@ -36,8 +36,18 @@ class Test2[test2: array of string, val test: string]:
     init:
         resolve test3 := "resolved!"
         
-    function name(test: string):: string:
-        fun return "aaa"
+    function name(test: string) :: string:
+        return "aaa"
+        
+class Counter[val count: integer]:
+    function increment(): Counter:
+        send "%[this].count%" to console
+
+        if count of [this] is 12:
+            send "it is 12!" to console
+
+        return new Counter([this] -> count + 1)
+        
 ```
 
 ## コンストラクタとプロパティ
@@ -58,13 +68,13 @@ class Test2[test2: array of string, val test: string]:
 `resolve test3 := "resolved!"`
 
 また、解決する必要のあるフィールドは 直接 `[name]` でアクセスすることができません。
-行いたい場合は、`[this].name` を経由しアクセスしてください。
+行いたい場合は、`[this] -> name` を経由しアクセスしてください。
 
 ## 修飾子
 修飾子には `アクセス修飾子`　と `宣言修飾子` の2種類があります。
 
 ### アクセス修飾子
-- `pravate` : クラス外からアクセス不可
+- `private` : クラス外からアクセス不可
 
 ### 宣言修飾子
 - `val` : 読み取り専用プロパティ
@@ -89,16 +99,16 @@ init:
 全フィールドを全ての経路で解決する必要があります。
 
 # クラス関数定義
-`function name(parameters...):: returnType:` の形で宣言します。
-関数本体で値を返すには `fun return <expression>` を使用します。
+`function name(parameters...) :: returnType:` の形で宣言します。
+関数本体で値を返すには `return <expression>` を使用します。
 
 returnType は省略が可能です。
 
 また、自分自身のインスタンスを指す変数 `[this]` が使用可能です。
 
 ```
-function name(test: string):: string:
-    fun return "aaa"
+function name(test: string) :: string:
+    return "aaa"
     
 function name(test: string):
     # code...
@@ -111,12 +121,12 @@ function name(test: string):
 # クラス関数呼び出し
 
 ## Non Suspend (Expression, Effect)
-> Syntax: call `%functionName%` in `%object%`
+> `%object% -> functionName(%objects%) then functionName(%objects%)...`
 
 ```
-val count := call count in [classInstance]
+val count := [classInstance] -> count() then sendCount()
 
-call count in [classInstance]
+[classInstance] -> count() then sendCount()
 ```
 この関数の呼び出しは、`中断されず`に**即座に値を返します。**
 関数内に `wait` につながる構文がある場合、値が `null` になる可能性があります。
@@ -131,18 +141,22 @@ call count in [classInstance]
 # 変数宣言（型制限変数）
 - 変数は `val` (再代入不可) と `var`(再代入可) で宣言します。
 - 構文
-  - 明示的な型と初期化: `val | var 名 (型) := 値`
-  - 型推論で初期化: `val | var 名 := 値`
+  - 明示的な型と初期化: `val | var 名 (型) := 値`, `[declare] immutable | mutable 名 (型) := 値`
+  - 型推論で初期化: `val | var 名 := 値`, `[declare] immutable | mutable 名 := 値`
 - 例
 ```
-val title (string) := "test"   # 型明示 + 初期化
-val msg := "hello"             # 型推論 + 初期化
+val title (string) := "test"         # 型明示 + 初期化
+val msg := "hello"                   # 型推論 + 初期化
+immutable title (string) := "test"   # 型明示 + 初期化
+immutable msg := "hello"             # 型推論 + 初期化
 
-var count (integer) := 0        # 可変
-[count] <- [count] + 1          # 再代入
+var count (integer) := 0             # 可変
+set [count] to [count] + 1           # 再代入
+mutable count := 0         # 可変
+set [count] to [count] + 1           # 再代入
 
-val count (integer)             # 宣言
-[count] := 10                   # 代入
+val count (integer)                  # 宣言
+set [count] to 10                    # 代入
 ```
 
 `val name` のように、初期化も型指定もない宣言はできません。
@@ -150,10 +164,17 @@ val count (integer)             # 宣言
 
 ## 変数アクセス
 基本的に変数は `[name]` でアクセスができます。
-変数の型が自作型である場合 `[name].field` で、フィールドにアクセスが可能です。
+変数が自作型の場合 `[name].field`, `[name] -> field`, `field of [name]` で、フィールドにアクセスが可能です。
 
 `クラス関数` や `init セクション` において定義されている`引数`や`プロパティ`は、
 全て上記の方法でアクセス可能です。
+
+```
+send "%[player].level%"
+send "%[player]->level%"
+send "%[player] -> level%"
+send "%level of [player]%"
+```
 
 # 監視 - Observer
 `factor` 修飾子が付いたフィールドが変更されると、その変更が通知されます。
@@ -164,13 +185,13 @@ val count (integer)             # 宣言
 ```
 class Player[factor level: long, factor exp: long]:
     function addExp(amount: long):
-        notify [this].exp <- [this].exp + [amount]
+        notify that set [this] -> exp to [this] -> exp + [amount]
         if [this].exp >= 100:
-            [this].level <- [this].level + 1
-            [this].exp <- [this].exp - 100
+            notify that set [this].level to [this].level + 1
+            set exp of [this] to exp of [this] - 100
 
 observe Player factor level:
-    if [instance].level >= 10:
+    if [instance] -> level >= 10:
         send "レベル10に到達しました！ おめでとう！"
 ```
 
@@ -187,52 +208,45 @@ observe Player factor level:
 > 
 
 ## 通知 - Notify
-フィールド変更時、デフォルトでは通知は行われません。(`[object].field <- value` での変更)
+フィールド変更時、デフォルトでは通知は行われません。(`set [object].field to value` での変更)
 
-通知を行うには `notify` を使用します。
-`notify [this].field <- value` の様にすることで、通知を行うことができます。
+通知を行うには `notify that` を使用します。
+`notify that set [this].field to value` の様にすることで、通知ができます。
 この設定は、不要な通知を避けるために実装されています。
 
-# 例
-## カウンタークラス
-`クラス関数`で実装した`カウンター` と `Skript 本来の関数`で実装した`カウンター` の比較です。
+
+# 文法要約
+- クラス定義 (BNF 風の短いまとめ例)
+- 実装構文
 
 ```
-class Counter[var count: long]:
-    function increment():
-        [this].count <- [this].count + 1
-        
-#200万回分 カウントする。 (Class)
-command /class:
-    trigger:
-        var test2 := create Counter with 0
+class <name>[<constructor-params>]:
+    field:
+    init:
+    function <name>(<params...>) :: <returnType>:
+    
+set [<name>] to <expression>
+set <field-access> to <expression>
+notify that set <field-access> to <expression>
 
-        loop 20 times:
-            set {_start} to now
+observe <class-name> factor <field-name>:
+    <statements...>
+```
 
-            loop 100000 times:
-                call increment in [test2]
-            set {_end} to now
-            set {_diff} to difference between {_end} and {_start}
-            add {_diff} to {_time} 
-            broadcast "処理時間: %{_diff}%"
-        
-        send "200万回の合計: %{_time}%"
-        
-#200万回分 カウントする。 (Class)
-command /origin:
-    trigger:
-        loop 20 times:
-            set {_start} to now
-            loop 100000 times:
-                set {_aa} to increment({_aa})
-            set {_end} to now
-            set {_diff} to difference between {_end} and {_start}
-            add {_diff} to {_time} 
-            broadcast "処理時間: %{_diff}%"
+# 例: 完全なクラスサンプル
+```
+class Player[factor level: long, val name: string]:
+    field:
+        private var metadata: string
 
-        send "200万回の合計: %{_time}%"
+    init:
+        resolve metadata := "default"
 
-function increment(count: number) :: number:
-    return {_count} + 1
+    function addExp(amount: long):
+        notify that set [this] -> level to [this] -> level + [amount]
+        if [this] -> level >= 100:
+            notify that set [this] -> level to level of [this] - 100
+
+observe Player factor level:
+    send "%[instance] -> name% leveled up to %[new]!"
 ```
