@@ -1,4 +1,4 @@
-package com.github.tanokun.addon.runtime.skript.function
+package com.github.tanokun.reactivesk.v263.skript.runtime.function
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Effect
@@ -9,17 +9,16 @@ import ch.njol.skript.sections.SecLoop
 import ch.njol.skript.sections.SecWhile
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
-import com.github.tanokun.addon.definition.skript.dynamic.FunctionDefinitionInjector
-import com.github.tanokun.addon.intermediate.metadata.MethodMetadata
-import com.github.tanokun.addon.runtime.skript.function.call.mediator.RuntimeFunctionMediator
+import com.github.tanokun.reactivesk.v263.skript.resolve.clazz.FunctionDefinitionInjectorSection
+import com.github.tanokun.reactivesk.v263.skript.runtime.function.mediator.RuntimeFunctionMediator
+import com.github.tanokun.reactivesk.v263.skript.util.PriorityRegistration
 import org.bukkit.event.Event
 
 @Suppress("UNCHECKED_CAST")
 class FunctionReturnEffect : Effect() {
-
     companion object {
-        init {
-            Skript.registerEffect(FunctionReturnEffect::class.java, "fun return %object%")
+        fun register() {
+            PriorityRegistration.register<FunctionReturnEffect>("return %object%")
         }
     }
 
@@ -33,13 +32,12 @@ class FunctionReturnEffect : Effect() {
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
-        val injector = parser.currentSections.firstOrNull { it is FunctionDefinitionInjector } as? FunctionDefinitionInjector ?: let {
-            Skript.error("Cannot use 'fun return' outside of function.")
-            return false
-        }
+        val injector = parser.currentSections
+            .filterIsInstance<FunctionDefinitionInjectorSection>()
+            .firstOrNull() ?: let { return false }
 
         valueExpr = LiteralUtils.defendExpression(exprs[0])
-        returnType = injector.method.getAnnotation(MethodMetadata::class.java).returnType.java
+        returnType = injector.method.returnType
 
         if (returnType == Void.TYPE) {
             Skript.error("Cannot use 'fun return' in function '$returnType' that returns void.")
