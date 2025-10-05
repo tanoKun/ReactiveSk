@@ -1,20 +1,33 @@
-package com.github.tanokun.reactivesk.skriptadapter.v2_6_3.analyze.ast
+package com.github.tanokun.reactivesk.v263.skript.analyze.ast
 
 import ch.njol.skript.lang.TriggerItem
 import ch.njol.skript.sections.SecConditional
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.ast.AstNode
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.AstParseResult
+import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.NodeParser
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.ParseContext
-import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.TriggerItemParser
 import com.github.tanokun.reactivesk.skriptadapter.common.reflection.Reflection
-import com.github.tanokun.reactivesk.skriptadapter.v2_6_3.SkriptAdapterV263.getFirstInSection
+import com.github.tanokun.reactivesk.v263.skript.util.getFirstInSection
 
-class ConditionalParser : TriggerItemParser {
-    override val priority: Int = 100
+/**
+ * 条件分岐構造を解析して [AstNode] のセクションノードを生成するパーサです。
+ *
+ * IF/ELSE/ELSE_IF の連鎖を解析して対応する AST ノードを構築します。
+ */
+object ConditionalParser : NodeParser<TriggerItem> {
+    override val priority: Int = 1000
 
     override fun canHandle(item: TriggerItem): Boolean = item is SecConditional
 
-    override fun parse(item: TriggerItem, context: ParseContext): AstParseResult {
+    /**
+     * 指定した [item] を解析して条件分岐のセクションノードを生成します。
+     *
+     * @param item 解析対象のトリガーアイテム
+     * @param context 解析に使用するコンテキスト
+     *
+     * @return 解析結果の [AstParseResult]
+     */
+    override fun parse(item: TriggerItem, context: ParseContext<TriggerItem>): AstParseResult {
         val conditional = item as SecConditional
         val conditionalType = conditional.conditionalType()
 
@@ -56,7 +69,7 @@ class ConditionalParser : TriggerItemParser {
         return IfChain(ifHeader, elseIfs, elseNode)
     }
 
-    private fun parseIfChain(ifHeader: SecConditional, context: ParseContext): Pair<AstNode.Section.If<TriggerItem>, TriggerItem?> {
+    private fun parseIfChain(ifHeader: SecConditional, context: ParseContext<TriggerItem>): Pair<AstNode.Section.If<TriggerItem>, TriggerItem?> {
         val chain = findIfChain(ifHeader)
 
         val thenSection = context.parseStruct(chain.ifHeader.getFirstInSection(), chain.ifHeader.normalNext)
