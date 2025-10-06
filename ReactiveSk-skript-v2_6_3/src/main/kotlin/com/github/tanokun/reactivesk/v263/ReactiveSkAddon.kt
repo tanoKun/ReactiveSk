@@ -53,8 +53,10 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.bukkit.plugin.java.JavaPlugin
+import java.io.File
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
+import java.util.logging.Logger
 
 class ReactiveSkAddon : JavaPlugin() {
     companion object {
@@ -65,7 +67,7 @@ class ReactiveSkAddon : JavaPlugin() {
             staticClassResolver = { getClassBySkript(it.identifier) }
         )
 
-        private val bytecodeGenerator = JvmBytecodeGenerator(
+        val bytecodeGenerator = JvmBytecodeGenerator(
             superClass = DynamicClass::class.java,
             constructorGenerator = ConstructorGenerator(
                 classResolver,
@@ -109,13 +111,65 @@ class ReactiveSkAddon : JavaPlugin() {
 
         val constructorCallers = HashMap<Constructor<*>, ConstructorCaller>()
 
-        private lateinit var callerClassLoader: DynamicClassLoader
-
         val coroutineScope by lazy {
             val handler = CoroutineExceptionHandler { _, throwable ->
                 throwable.printStackTrace()
             }
             CoroutineScope(plugin.minecraftDispatcher + SupervisorJob() + handler)
+        }
+
+        fun registerClass(dataFolder: File) {
+            dataFolder.resolve("generated-classes").let { file ->
+                if (!file.exists()) file.mkdirs()
+
+                dynamicManager.definitionLoader.getAllDefinitions().forEach { definition ->
+                    bytecodeGenerator.generateClass(definition).saveIn(file)
+
+                    val loadedClass = dynamicManager.getLoadedClass(definition.className)
+                        ?: throw IllegalStateException("Class '${definition.className.identifier}' is not loaded.")
+
+                    val methodCallers = loadedClass.methods
+                        .filter { method -> method.isAnnotationPresent(TriggerMetadata::class.java) }
+                        .map { method -> MethodCallerBytecodeGenerator.generateClass(method) to method }
+
+                    val constructorCallers = loadedClass.constructors
+                        .filter { constructor -> constructor.parameters.size >= 1 }
+                        .map { constructor -> MethodCallerBytecodeGenerator.generateClass(constructor) to constructor }
+
+                    val callerClassLoader = DynamicClassLoader(
+                        loadedClass.classLoader,
+                        methodCallers.map { it.first } + constructorCallers.map { it.first }
+                    )
+
+                    methodCallers.forEach { (caller, method) ->
+                        Companion.methodCallers[method] = callerClassLoader.loadClass(caller.typeDescription.name).newInstance() as MethodCaller
+                    }
+
+                    constructorCallers.forEach { (caller, constructor) ->
+                        Companion.constructorCallers[constructor] = callerClassLoader.loadClass(caller.typeDescription.name).newInstance() as ConstructorCaller
+                    }
+                }
+            }
+        }
+
+        fun registerClassToSkript(logger: Logger) {
+            dynamicManager.definitionLoader.getAllDefinitions().forEach { definition ->
+                try {
+                    val loadedClass = dynamicManager.getLoadedClass(definition.className)
+                        ?: throw IllegalStateException("Class '${definition.className.identifier}' is not loaded.")
+
+                    Classes.registerClass(
+                        ClassInfo(loadedClass, definition.className.identifier.lowercase())
+                            .name(definition.className.identifier)
+                            .user(definition.className.identifier, definition.className.identifier.lowercase())
+                            .serializer(DynamicInstanceSerializer())
+                    )
+
+                } catch (e: Throwable) {
+                    logger.warning("Failed to load class '${definition.className.identifier}' -> ${e.message}")
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
@@ -136,58 +190,13 @@ class ReactiveSkAddon : JavaPlugin() {
             logger.info("Loaded class: $it")
         }
 
-        dataFolder.resolve("generated-classes").let { file ->
-            if (!file.exists()) file.mkdirs()
-
-            dynamicManager.definitionLoader.getAllDefinitions().forEach {
-                bytecodeGenerator.generateClass(it).saveIn(file)
-            }
-        }
-
-        dynamicManager.definitionLoader.getAllDefinitions().forEach { definition ->
-            try {
-                val loadedClass = dynamicManager.getLoadedClass(definition.className)
-                    ?: throw IllegalStateException("Class '${definition.className.identifier}' is not loaded.")
-
-                Classes.registerClass(
-                    ClassInfo(loadedClass, definition.className.identifier.lowercase())
-                        .name(definition.className.identifier)
-                        .user(definition.className.identifier, definition.className.identifier.lowercase())
-                        .serializer(DynamicInstanceSerializer())
-                )
-
-                val methodCallers = loadedClass.methods
-                    .filter { method -> method.isAnnotationPresent(TriggerMetadata::class.java) }
-                    .map { method -> MethodCallerBytecodeGenerator.generateClass(method) to method }
-
-                val constructorCallers = loadedClass.constructors
-                    .filter { constructor -> constructor.parameters.size >= 1 }
-                    .map { constructor -> MethodCallerBytecodeGenerator.generateClass(constructor) to constructor }
-
-                callerClassLoader = DynamicClassLoader(
-                    loadedClass.classLoader,
-                    methodCallers.map { it.first } + constructorCallers.map { it.first }
-                )
-
-                methodCallers.forEach { (caller, method) ->
-                    Companion.methodCallers[method] = callerClassLoader.loadClass(caller.typeDescription.name).newInstance() as MethodCaller
-                }
-
-                constructorCallers.forEach { (caller, constructor) ->
-                    Companion.constructorCallers[constructor] = callerClassLoader.loadClass(caller.typeDescription.name).newInstance() as ConstructorCaller
-                }
-
-            } catch (e: Throwable) {
-                logger.warning("Failed to load class '${definition.className.identifier}' -> ${e.message}")
-                e.printStackTrace()
-            }
-        }
+        registerClass(dataFolder)
+        registerClassToSkript(logger)
 
         addon = Skript.registerAddon(this)
         registerToSkript()
 
         logger.info("ReactiveSk Addon has been enabled successfully!")
-
     }
 
     private fun registerToSkript() {
