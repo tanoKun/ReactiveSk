@@ -19,3 +19,4 @@ plugins {
 rootProject.name = "ReactiveSk"
 
 include("ReactiveSk-skript-v2_6_3")
+include("ReactiveSk-skript-v2_7_0")

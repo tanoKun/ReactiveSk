@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     kotlin("jvm")
     `java-library`
@@ -31,36 +29,14 @@ repositories {
     }
 }
 
-kotlin {
-    jvmToolchain(8)
-}
-
-tasks.named<KotlinCompile>("compileKotlin") {
-    dependsOn(tasks.named("generateGrammarSource"))
-}
+extra["reactive.jvmToolchain"] = 8
+apply(plugin = "com.tanokun.reactive-convention")
 
 tasks.named<AntlrTask>("generateGrammarSource") {
     outputDirectory = file("build/generated-src/antlr/main")
     arguments = arguments + listOf("-package", "com.github.tanokun.addon", "-visitor")
 }
 
-tasks.named("generateTestGrammarSource") {
-    enabled = false
-}
-
-sourceSets {
-    main {
-        kotlin {
-            srcDir("build/generated-src/antlr/main")
-        }
-    }
-
-    test {
-        kotlin {
-            srcDir("build/generated-src/antlr/main")
-        }
-    }
-}
 
 tasks {
     val copyJarToPlugins by registering(Copy::class) {
@@ -97,7 +73,7 @@ dependencies {
     implementation(libs.bundles.mccoroutine)
     implementation(libs.kotlinx.coroutines)
 
-    implementation("net.bytebuddy:byte-buddy-agent:1.17.7")
+    implementation(libs.bytebuddy.agent)
     implementation(libs.bytebuddy)
 
     implementation(libs.bundles.reactivesk.all)
