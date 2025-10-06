@@ -5,7 +5,6 @@ import ch.njol.skript.lang.Effect
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.util.LiteralUtils
-import ch.njol.skript.variables.Variables
 import ch.njol.util.Kleenean
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.variable.TypedVariableDeclaration
 import com.github.tanokun.reactivesk.lang.Identifier
@@ -30,8 +29,6 @@ class SetLocalTypedVariableEffect: Effect() {
     private lateinit var definitionExpr: Expression<Any>
 
     private lateinit var declaration: TypedVariableDeclaration.Resolved
-
-    private lateinit var internalTypedVariable: String
 
     override fun init(
         exprs: Array<out Expression<*>?>,
@@ -89,9 +86,8 @@ class SetLocalTypedVariableEffect: Effect() {
             return
         }
 
-        if (Variables.getVariable(internalTypedVariable, e, true) != null) {
-            val onDebug = if (Skript.debug()) "debug -> [internal: $internalTypedVariable, declaration: $declaration]" else ""
-            throw IllegalStateException("Typed variable '${declaration.variableName}' is initialized." + onDebug)
+        if (AmbiguousVariableFrames.get(e, declaration.index) != null) {
+            throw IllegalStateException("Typed variable '${declaration.variableName}' is initialized.")
         }
 
         AmbiguousVariableFrames.set(e, declaration.index, value)
