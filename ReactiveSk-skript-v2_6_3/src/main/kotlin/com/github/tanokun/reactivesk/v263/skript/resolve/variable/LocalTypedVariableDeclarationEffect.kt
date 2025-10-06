@@ -6,13 +6,11 @@ import ch.njol.skript.config.Node
 import ch.njol.skript.lang.Effect
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
-import ch.njol.skript.lang.TriggerItem
 import ch.njol.skript.lang.parser.ParserInstance
 import ch.njol.skript.sections.SecLoop
 import ch.njol.skript.sections.SecWhile
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
-import com.github.tanokun.reactivesk.compiler.frontend.analyze.ast.AstNode
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.variable.TypedVariableDeclaration
 import com.github.tanokun.reactivesk.lang.Identifier
 import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
@@ -20,9 +18,6 @@ import com.github.tanokun.reactivesk.v263.ReactiveSkAddon
 import com.github.tanokun.reactivesk.v263.skript.util.getDepth
 import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event
-import java.util.*
-
-val sections = WeakHashMap<TriggerItem?, AstNode.Section<TriggerItem>>()
 
 @Suppress("UNCHECKED_CAST")
 class LocalTypedVariableDeclarationEffect: Effect() {
@@ -75,29 +70,29 @@ class LocalTypedVariableDeclarationEffect: Effect() {
             return false
         }
 
-        var resolveType: Class<*> = Any::class.java
-        val unresolveType: ClassInfo<*>? =
-            if (exprs[1] == null) null
-            else (exprs[1] as Expression<ClassInfo<*>>).getSingle(null) ?: let {
-                Skript.error("Type ${exprs[1]} is not exist.")
-                return false
-            }
+        val declaredTypeExpr = exprs[1] as? Expression<ClassInfo<*>>
+        val definitionExpr = exprs.getOrNull(2)
+            ?.let { LiteralUtils.defendExpression<Any>(it) }
+            .apply { definitionExpr = this }
 
-        val definitionExpr = (exprs.getOrNull(2) as? Expression<Any>)?.let { LiteralUtils.defendExpression<Any>(it) }
-
-        shouldExecuteTypeInference(unresolveType, definitionExpr) { definitionExpr ->
-            resolveType = definitionExpr.returnType
+        if (declaredTypeExpr == null && definitionExpr == null) {
+            Skript.error("Type declaration or definition expression must be provided.")
+            return false
         }
 
-        shouldCheckDefinitionType(unresolveType, definitionExpr) { definitionExpr ->
-            if (!resolveType.isAssignableFrom(definitionExpr.returnType)) {
-                Skript.error("Cannot assign '$definitionExpr' to '$variableName' because it's not type '${resolveType.simpleName}' but '${definitionExpr.returnType.simpleName}'")
-                return false
-            }
-        }
+        val resolvedType = if (declaredTypeExpr != null && definitionExpr != null)
+            checkDeclaredType(
+                definitionExpr, declaredTypeExpr,
+                "Cannot assign $definitionExpr to '$variableName' because it's not type '${getDeclaredType(declaredTypeExpr)?.simpleName}' but '${definitionExpr.returnType.simpleName}'"
+            )
+         else if (declaredTypeExpr != null) getDeclaredType(declaredTypeExpr)
+         else if (definitionExpr != null) inferType(definitionExpr)
+         else null
+
+        if (resolvedType == null) return false
 
         if (definitionExpr?.isSingle == false) {
-            Skript.error("Definition expression ${exprs[1]} must be single.")
+            Skript.error("Definition expression $definitionExpr must be single.")
             return false
         }
 
@@ -105,21 +100,32 @@ class LocalTypedVariableDeclarationEffect: Effect() {
             Skript.warning("Resolving variable '$variableName' inside a loop may cause 'already initialized' error if the variable is already initialized.")
         }
 
-        definitionExpr?.let { this.definitionExpr = it }
         declaration = typedVariableResolver.declare(
             top = topNode,
-            declaration = TypedVariableDeclaration.Unresolved(variableName, resolveType, isMutable, depth)
+            declaration = TypedVariableDeclaration.Unresolved(variableName, resolvedType, isMutable, depth)
         )
 
         return true
     }
 
-    private inline fun shouldExecuteTypeInference(unresolveType: ClassInfo<*>?, definitionExpr: Expression<Any>?, dsl: (Expression<Any>) -> Unit) {
-        if (unresolveType == null && definitionExpr != null) dsl(definitionExpr)
+    private fun inferType(definitionExpr: Expression<Any>): Class<*> = definitionExpr.returnType
+
+    private fun checkDeclaredType(definitionExpr: Expression<Any>, declaredTypeExpr: Expression<ClassInfo<*>>, failure: String): Class<*>? {
+        val declaredType = getDeclaredType(declaredTypeExpr) ?: let {
+            Skript.error("Declared type expression '$declaredTypeExpr' is not single or null.")
+            return null
+        }
+
+        if (!declaredType.isAssignableFrom(definitionExpr.returnType)) {
+            Skript.error(failure)
+            return null
+        }
+
+        return declaredType
     }
 
-    private inline fun shouldCheckDefinitionType(unresolveType: ClassInfo<*>?, definitionExpr: Expression<Any>?, dsl: (Expression<Any>) -> Unit) {
-        if (unresolveType != null && definitionExpr != null) dsl(definitionExpr)
+    private fun getDeclaredType(declaredTypeExpr: Expression<ClassInfo<*>>): Class<*>? {
+        return declaredTypeExpr.getSingle(null)?.c
     }
 
     private fun isDuplicatingVariableDeclaration(topNode: Node, depth: Int, variableName: Identifier): Boolean =
