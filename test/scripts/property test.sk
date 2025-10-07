@@ -1,0 +1,24 @@
+class Nest1[val nest2: Nest2]:
+
+class Nest2[val nest3: Nest3]:
+
+class Nest3[val nest4: Nest4]:
+
+class Nest4[var value: long]:
+
+load:
+    val nest4 := new Nest4(10)
+    val nest3 := new Nest3([nest4])
+    val nest2 := new Nest2([nest3])
+    val nest1 := new Nest1([nest2])
+
+    send "nest1: %[nest1]%" to console
+    send "nest1.nest2: %[nest1] -> nest2%" to console
+    send "nest1.nest2.nest3: %[nest1] -> nest2 -> nest3%" to console
+    send "nest1.nest2.nest3.nest4: %[nest1] -> nest2 -> nest3 -> nest4%" to console
+    send "nest1.nest2.nest3.nest4.value: %[nest1] -> nest2 -> nest3 -> nest4 -> value%" to console
+
+    send "nest2 of nest1: %nest2 of [nest1]%" to console
+    send "nest3 of nest2 of nest1: %nest3 of nest2 of [nest1]%" to console
+    send "nest4 of nest3 of nest2 of nest1: %nest4 of nest3 of nest2 of [nest1]%" to console
+    send "value of nest4 of nest3 of nest2 of nest1: %value of nest4 of nest3 of nest2 of [nest1]%" to console
