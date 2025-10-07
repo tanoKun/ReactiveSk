@@ -8,11 +8,8 @@ import ch.njol.skript.lang.SkriptParser
 import ch.njol.util.Checker
 import ch.njol.util.Kleenean
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.variable.TypedVariableDeclaration
-import com.github.tanokun.reactivesk.lang.Identifier
 import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
 import com.github.tanokun.reactivesk.v263.ReactiveSkAddon
-import com.github.tanokun.reactivesk.v263.skript.util.getDepth
-import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event
 
 
@@ -39,27 +36,7 @@ class GetLocalTypedVariableExpression: Expression<Any> {
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
-        val variableName = (exprs[0] as? Expression<Identifier>)?.getSingle(null) ?: let {
-            Skript.error("Variable name ${exprs[0]} is not invalid.")
-            return false
-        }
-
-        val node = parser.node ?: let {
-            Skript.error("Cannot find node.")
-            return false
-        }
-
-        val topNode = node.getTopNode()
-        val depth = node.getDepth()
-
-        val currentSection = parser.currentSections.lastOrNull()
-
-        typedVariableResolver.touchSection(topNode, depth, currentSection)
-
-        declaration = typedVariableResolver.getDeclarationInScopeChain(topNode, depth, variableName) ?: let {
-            Skript.error("Typed variable '$variableName' is not declared in scope chain.")
-            return false
-        }
+        this.declaration = verifyAndTouchTypedVariable(exprs[0], parser, typedVariableResolver) ?: return false
 
         isArray = declaration.type == ArrayList::class.java
 
