@@ -16,6 +16,7 @@ import com.github.tanokun.reactivesk.v263.skript.util.PriorityRegistration
 import org.bukkit.event.Event
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType
 import java.lang.reflect.Field
 
 @Suppress("UNCHECKED_CAST")
@@ -71,13 +72,18 @@ class SetTypedValueFieldEffect: Effect() {
             return false
         }
 
-        val setterName = if (field.type == ArrayList::class.java)
-            internalArrayListSetterOf(fieldExpr.fieldName.identifier)
-        else
-            internalSetterOf(fieldExpr.fieldName.identifier)
-
-        val setterMethod = targetExpr.returnType.methods.first { it.name == setterName }
-        setterHandle = lookup.unreflect(setterMethod)
+        setterHandle =
+            if (field.type == ArrayList::class.java) {
+                lookup.findVirtual(
+                    targetExpr.getReturnType(),
+                    internalArrayListSetterOf(fieldExpr.fieldName.identifier),
+                    MethodType.methodType(Void.TYPE, ArrayList::class.java, Boolean::class.java)
+                )
+            } else lookup.findVirtual(
+                targetExpr.getReturnType(),
+                internalSetterOf(fieldExpr.fieldName.identifier),
+                MethodType.methodType(Void.TYPE, valueExpr.returnType, Boolean::class.java)
+            )
 
         return true
     }
