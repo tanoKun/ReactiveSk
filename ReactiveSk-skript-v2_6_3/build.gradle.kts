@@ -72,8 +72,6 @@ tasks {
     shadowJar {
         dependsOn(subprojects.map { it.tasks.named("test") })
 
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
         archiveBaseName.set("ReactiveSk")
         archiveVersion.set("developing")
 
