@@ -1,0 +1,7 @@
+class SetGlobalToDynamicObjectTest:
+
+load:
+    set {test::SetGlobalToDynamicObjectTest} to new SetGlobalToDynamicObjectTest
+
+    immutable verify := true if {test::SetGlobalToDynamicObjectTest} is {test::SetGlobalToDynamicObjectTest}
+    send "%[verify]%: set global to dynamic object" to console
