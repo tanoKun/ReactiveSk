@@ -54,6 +54,10 @@ fun Exec.runEnvConsole(
                 workingDir = project.projectDir
             }
         }
+
+        standardInput = System.`in`
+        standardOutput = System.out
+        errorOutput = System.err
     }
 
     val serverDir = project.projectDir.resolve("test/servers").resolve(serverJarName.removeSuffix(".jar"))
