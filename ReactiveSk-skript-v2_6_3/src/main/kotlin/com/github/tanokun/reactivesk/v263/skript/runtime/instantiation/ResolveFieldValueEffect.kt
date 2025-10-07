@@ -22,7 +22,6 @@ import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
 
 @Suppress("UNCHECKED_CAST")
 class ResolveFieldValueEffect: Effect() {
@@ -103,21 +102,15 @@ class ResolveFieldValueEffect: Effect() {
             Skript.warning("Resolving field '$fieldName' inside a loop may cause 'already initialized' error if the field is already initialized.")
         }
 
-        setterHandle =
-            if (field.type == ArrayList::class.java) {
-                lookup.findVirtual(
-                    clazz,
-                    internalArrayListSetterOf(fieldName.identifier),
-                    MethodType.methodType(Void.TYPE, ArrayList::class.java, Boolean::class.java)
-                )
-            } else
-                lookup.findVirtual(
-                    clazz,
-                    internalSetterOf(fieldName.identifier),
-                    MethodType.methodType(Void.TYPE, valueExpr.returnType, Boolean::class.java)
-                )
 
+        val setterName = if (field.type == ArrayList::class.java)
+            internalArrayListSetterOf(fieldName.identifier)
+        else
+            internalSetterOf(fieldName.identifier)
 
+        val setterMethod = clazz.methods.first { it.name == setterName }
+
+        setterHandle = lookup.unreflect(setterMethod)
         getterHandle = lookup.unreflectGetter(field)
 
         val depth = parseNode.getDepth()
