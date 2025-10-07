@@ -17,8 +17,8 @@ load:
     [functionDefinitionClass] -> nonParameterFunction()
     [functionDefinitionClass] -> hasParameterFunction(5, 10)
 
-    val result1 := [functionDefinitionClass] -> nonParameterAndReturnFunction()
-    send "result1=%[result1]%" to console
+    val verify1 := true if [functionDefinitionClass] -> nonParameterAndReturnFunction() is 10
+    send "%[verify1]%: verify non parameter overload is %[verify1]%" to console
 
-    val result2 := [functionDefinitionClass] -> hasParameterAndReturnFunction(5, 10)
-    send "result2=%[result2]%" to console
+    val verify2 := true if [functionDefinitionClass] -> hasParameterAndReturnFunction(5, 10) is 15
+    send "%[verify2]%: verify has parameter overload is %[verify2]%" to console

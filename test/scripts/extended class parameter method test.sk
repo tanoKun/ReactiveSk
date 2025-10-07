@@ -8,9 +8,9 @@ class Counter:
     function increment():
         notify that set count of [this] to count of [this] + 1 
 
-command /counter_class:
-    trigger:
-        immutable counter := create Counter
-        [counter] -> increment()
+load:
+    immutable counter := create Counter
+    [counter] -> increment()
 
-        send "%count of [counter]%"
+    immutable verify := true if count of [counter] is 1
+    send "%[verify]%: invoke extended class parameter method is %[verify]%" to console
