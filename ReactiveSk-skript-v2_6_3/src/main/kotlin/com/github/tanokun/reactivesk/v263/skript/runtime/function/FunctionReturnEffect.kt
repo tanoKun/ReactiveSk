@@ -77,5 +77,5 @@ class FunctionReturnEffect : Effect() {
 
     override fun toString(e: Event?, debug: Boolean): String = "fun return $valueExpr"
 
-    override fun execute(e: Event?) { }
+    override fun execute(e: Event?) = throw UnsupportedOperationException("Cannot execute FunctionReturnEffect directly.")
 }
