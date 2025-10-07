@@ -1,0 +1,24 @@
+class FunctionDefinitionClass:
+    function nonParameterFunction():
+        send "nonParameterFunction" to console
+
+    function hasParameterFunction(param1: long, param2: long):
+        send "parameterFunction param1=%[param1]%, param2=%[param2]%" to console
+
+    function nonParameterAndReturnFunction() :: long:
+        return 10
+
+    function hasParameterAndReturnFunction(param1: long, param2: long) :: long:
+        return [param1] + [param2]
+
+load:
+    val functionDefinitionClass := new FunctionDefinitionClass
+
+    [functionDefinitionClass] -> nonParameterFunction()
+    [functionDefinitionClass] -> hasParameterFunction(5, 10)
+
+    val verify1 := true if [functionDefinitionClass] -> nonParameterAndReturnFunction() is 10
+    send "%[verify1]%: verify non parameter overload is %[verify1]%" to console
+
+    val verify2 := true if [functionDefinitionClass] -> hasParameterAndReturnFunction(5, 10) is 15
+    send "%[verify2]%: verify has parameter overload is %[verify2]%" to console

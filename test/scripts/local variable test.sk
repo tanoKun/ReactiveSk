@@ -1,0 +1,44 @@
+# テスト用クラス
+class ClassDeclareLocalVariableTestDynamic[var value: String]:
+    function testMethod() :: String:
+        return value of [this]
+
+# 推論あり (定義と代入)
+on load:
+
+    # immutable / mutable 両方
+    immutable inferredImmutable := new ClassDeclareLocalVariableTestDynamic("default")
+    immutable verify1 := true if [inferredImmutable] -> testMethod() is "default"
+    send "%[verify1]%: inferred immutable (type referenced) is %[verify1]%" to console
+
+    mutable inferredMutable := new ClassDeclareLocalVariableTestDynamic("default")
+    immutable verify2 := true if [inferredMutable] -> testMethod() is "default"
+    send "%[verify2]%: inferred mutable (type referenced) is %[verify2]%" to console
+
+    set [inferredMutable] to new ClassDeclareLocalVariableTestDynamic("changed")
+    immutable verify3 := true if [inferredMutable] -> testMethod() is "changed"
+    send "%[verify3]%: inferred mutable changed (type referenced) is %[verify3]%" to console
+
+    set [inferredImmutable] to new ClassDeclareLocalVariableTestDynamic("changed") # immutable なのでエラーになるはず
+
+# 推論なし (型明示 + 定義と代入)
+on load:
+    # dynamic 型を明示
+    immutable explicitImmutable (ClassDeclareLocalVariableTestDynamic) := new ClassDeclareLocalVariableTestDynamic("default")
+    immutable verify1 := true if [explicitImmutable] -> testMethod() is "default"
+    send "%[verify1]%: explicit immutable (type declared) is %[verify1]%" to console
+
+    mutable explicitMutable (ClassDeclareLocalVariableTestDynamic) := new ClassDeclareLocalVariableTestDynamic("default")
+    immutable verify2 := true if [explicitMutable] -> testMethod() is "default"
+    send "%[verify2]%: explicit mutable (type declared) is %[verify2]%" to console
+
+    set [explicitMutable] to new ClassDeclareLocalVariableTestDynamic("changed")
+    immutable verify3 := true if [explicitMutable] -> testMethod() is "changed"
+    send "%[verify3]%: explicit mutable changed (type declared) is %[verify3]%" to console
+
+    set [explicitImmutable] to new ClassDeclareLocalVariableTestDynamic("changed") # immutable なのでエラーになるはず
+
+# 推論なし (型明示・定義のみ -> 後で代入想定)
+on load:
+    immutable declaredImmutable (ClassDeclareLocalVariableTestDynamic)
+    mutable declaredMutable (ClassDeclareLocalVariableTestDynamic)
