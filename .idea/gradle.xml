@@ -9,15 +9,7 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/addon" />
-            <option value="$PROJECT_DIR$/compiler" />
-            <option value="$PROJECT_DIR$/compiler/backend" />
-            <option value="$PROJECT_DIR$/compiler/frontend" />
-            <option value="$PROJECT_DIR$/lang" />
-            <option value="$PROJECT_DIR$/skript-adapter" />
-            <option value="$PROJECT_DIR$/skript-adapter/common" />
-            <option value="$PROJECT_DIR$/skript-adapter/v2_6_3" />
-            <option value="$PROJECT_DIR$/skript-addon" />
+            <option value="$PROJECT_DIR$/ReactiveSk-skript-v2_6_3" />
           </set>
         </option>
       </GradleProjectSettings>
