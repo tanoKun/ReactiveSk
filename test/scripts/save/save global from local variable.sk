@@ -1,0 +1,24 @@
+class SaveGlobalFromLocalVariableTest[val value1: SaveGlobalFromLocalVariableTest2]:
+    field:
+        val value2: long
+
+    init:
+        resolve value2 := 42
+
+class SaveGlobalFromLocalVariableTest2:
+
+load:
+    immutable test2 := new SaveGlobalFromLocalVariableTest2
+    immutable test := new SaveGlobalFromLocalVariableTest with [test2]
+    set {test::SaveGlobalFromLocalVariableTest} to [test]
+
+    immutable verify := true if [test] is {test::SaveGlobalFromLocalVariableTest}
+    send "%[verify]%: Save global from local variable test" to console
+
+    set {test::SaveGlobalFromLocalVariableTest::value1} to value1 of [test]
+    immutable verify1 := true if {test::SaveGlobalFromLocalVariableTest::value1} is [test2]
+    send "%[verify1]%: Save global from local variable test (value1)" to console
+
+    set {test::SaveGlobalFromLocalVariableTest::value2} to value2 of [test]
+    immutable verify2 := true if {test::SaveGlobalFromLocalVariableTest::value2} is 42
+    send "%[verify2]%: Save global from local variable test (value2)" to console
