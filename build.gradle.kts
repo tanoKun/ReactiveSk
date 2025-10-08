@@ -77,3 +77,7 @@ fun Exec.runEnvConsole(
 tasks.register<Exec>("runEnvConsole1_12_2_v2_6_3") {
     runEnvConsole("1.12.2.jar", "Skript-v2.6.3.jar", "ReactiveSk-skript-v2_6_3")
 }
+
+tasks.register<Exec>("runEnvConsole1_17_1_v2_7_0") {
+    runEnvConsole("1.17.1.jar", "Skript-v2.7.0.jar", "ReactiveSk-skript-v2_7_0")
+}
