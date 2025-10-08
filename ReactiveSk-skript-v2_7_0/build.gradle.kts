@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.antlr)
 }
 
-group = "com.github.tanokun.reactivesk.v263"
+group = "com.github.tanokun.reactivesk.v270"
 version = "Developing-1-v2.7.0"
 
 repositories {
@@ -38,12 +38,6 @@ tasks.named<AntlrTask>("generateGrammarSource") {
 }
 
 tasks {
-    val copyJarToPlugins by registering(Copy::class) {
-        dependsOn(shadowJar)
-        from(shadowJar.get().archiveFile)
-        into("C:/Users/owner/Desktop/1.17.1 paper/plugins")
-    }
-
     shadowJar {
         dependsOn(subprojects.map { it.tasks.named("test") })
 
@@ -57,7 +51,6 @@ tasks {
         }
 
         mergeServiceFiles()
-        finalizedBy(copyJarToPlugins)
     }
 }
 
