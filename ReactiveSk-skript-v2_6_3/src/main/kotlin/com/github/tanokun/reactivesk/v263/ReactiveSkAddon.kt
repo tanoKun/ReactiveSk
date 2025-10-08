@@ -36,12 +36,12 @@ import com.github.tanokun.reactivesk.v263.skript.resolve.clazz.FunctionDefinitio
 import com.github.tanokun.reactivesk.v263.skript.resolve.clazz.SetCurrentResolvingClassSkriptEvent
 import com.github.tanokun.reactivesk.v263.skript.resolve.variable.LocalTypedVariableDeclarationEffect
 import com.github.tanokun.reactivesk.v263.skript.runtime.array.TransformSingleTypeArrayExpression
-import com.github.tanokun.reactivesk.v263.skript.runtime.function.FunctionReturnEffect
-import com.github.tanokun.reactivesk.v263.skript.runtime.function.call.NonSuspendCallFunctionEffect
-import com.github.tanokun.reactivesk.v263.skript.runtime.function.call.NonSuspendCallFunctionExpression
-import com.github.tanokun.reactivesk.v263.skript.runtime.instantiation.InstantiationExpression
-import com.github.tanokun.reactivesk.v263.skript.runtime.instantiation.ResolveFieldValueEffect
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.call.NonSuspendCallFunctionEffect
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.call.NonSuspendCallFunctionExpression
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation.InstantiationExpression
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation.ResolveFieldValueEffect
 import com.github.tanokun.reactivesk.v263.skript.runtime.observe.ObserverSkriptEvent
+import com.github.tanokun.reactivesk.v263.skript.runtime.returns.FunctionReturnEffect
 import com.github.tanokun.reactivesk.v263.skript.runtime.variable.CastExpression
 import com.github.tanokun.reactivesk.v263.skript.runtime.variable.field.GetTypedValueFieldExpression
 import com.github.tanokun.reactivesk.v263.skript.runtime.variable.field.SetTypedValueFieldEffect

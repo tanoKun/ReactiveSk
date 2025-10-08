@@ -1,4 +1,4 @@
-package com.github.tanokun.reactivesk.v263.skript.runtime.function.mediator
+package com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.mediator
 
 import org.bukkit.event.HandlerList
 

@@ -1,4 +1,4 @@
-package com.github.tanokun.reactivesk.v263.skript.runtime.function
+package com.github.tanokun.reactivesk.v263.skript.runtime.returns
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Effect
@@ -10,7 +10,7 @@ import ch.njol.skript.sections.SecWhile
 import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
 import com.github.tanokun.reactivesk.v263.skript.resolve.clazz.FunctionDefinitionInjectorSection
-import com.github.tanokun.reactivesk.v263.skript.runtime.function.mediator.RuntimeFunctionMediator
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.mediator.RuntimeFunctionMediator
 import com.github.tanokun.reactivesk.v263.skript.util.PriorityRegistration
 import org.bukkit.event.Event
 

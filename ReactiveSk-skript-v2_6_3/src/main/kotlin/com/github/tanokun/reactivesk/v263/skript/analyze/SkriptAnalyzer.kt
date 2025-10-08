@@ -5,7 +5,7 @@ import ch.njol.skript.lang.parser.ParserInstance
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.ast.AbstractDataFlowAnalyzer
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.ast.AstNode
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.ast.result.Severity
-import com.github.tanokun.reactivesk.v263.skript.runtime.instantiation.ResolveFieldValueEffect
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation.ResolveFieldValueEffect
 
 fun AbstractDataFlowAnalyzer.AnalysisResult<*, *>.printlnToSkript(parser: ParserInstance? = null) {
     val diagnostics = this.diagnostics

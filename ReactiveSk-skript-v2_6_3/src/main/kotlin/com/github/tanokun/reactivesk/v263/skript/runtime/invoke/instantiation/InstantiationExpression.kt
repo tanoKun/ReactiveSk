@@ -1,4 +1,4 @@
-package com.github.tanokun.reactivesk.v263.skript.runtime.instantiation
+package com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Expression
@@ -12,7 +12,7 @@ import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
 import com.github.tanokun.reactivesk.v263.ReactiveSkAddon.Companion.constructorCallers
 import com.github.tanokun.reactivesk.v263.caller.method.ConstructorCaller
 import com.github.tanokun.reactivesk.v263.skript.DynamicClassInfo
-import com.github.tanokun.reactivesk.v263.skript.runtime.instantiation.mediator.RuntimeConstructorMediator
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation.mediator.RuntimeConstructorMediator
 import org.bukkit.event.Event
 import java.lang.reflect.InvocationTargetException
 

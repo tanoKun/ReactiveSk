@@ -1,4 +1,4 @@
-package com.github.tanokun.reactivesk.v263.skript.runtime.function.call
+package com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.call
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Effect
@@ -6,8 +6,8 @@ import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.util.Kleenean
 import com.github.tanokun.reactivesk.v263.caller.method.MethodCaller
-import com.github.tanokun.reactivesk.v263.skript.runtime.function.call.NonSuspendCallFunction.callFunction
-import com.github.tanokun.reactivesk.v263.skript.runtime.function.mediator.NonSuspendRuntimeFunctionMediator
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.call.NonSuspendCallFunction.callFunction
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.mediator.NonSuspendRuntimeFunctionMediator
 import org.bukkit.event.Event
 
 @Suppress("UNCHECKED_CAST")

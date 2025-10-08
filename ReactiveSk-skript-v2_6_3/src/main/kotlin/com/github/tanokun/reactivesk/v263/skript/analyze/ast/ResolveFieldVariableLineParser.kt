@@ -5,7 +5,7 @@ import com.github.tanokun.reactivesk.compiler.frontend.analyze.ast.AstNode
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.AstParseResult
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.NodeParser
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.ParseContext
-import com.github.tanokun.reactivesk.v263.skript.runtime.instantiation.ResolveFieldValueEffect
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation.ResolveFieldValueEffect
 
 /**
  * [ResolveFieldValueEffect] を解析して AST のフィールド解決行ノードを生成するパーサです。

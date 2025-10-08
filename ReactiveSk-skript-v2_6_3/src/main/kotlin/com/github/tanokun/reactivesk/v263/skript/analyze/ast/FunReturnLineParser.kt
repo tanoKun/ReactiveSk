@@ -5,7 +5,7 @@ import com.github.tanokun.reactivesk.compiler.frontend.analyze.ast.AstNode
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.AstParseResult
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.NodeParser
 import com.github.tanokun.reactivesk.skriptadapter.common.analyze.ast.parse.ParseContext
-import com.github.tanokun.reactivesk.v263.skript.runtime.function.FunctionReturnEffect
+import com.github.tanokun.reactivesk.v263.skript.runtime.returns.FunctionReturnEffect
 
 /**
  * 関数の return 行を解析して AST の行ノードを生成するパーサです。

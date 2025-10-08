@@ -1,4 +1,4 @@
-package com.github.tanokun.reactivesk.v263.skript.runtime.instantiation
+package com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation
 
 import ch.njol.skript.Skript
 import ch.njol.skript.config.Node
@@ -17,7 +17,7 @@ import com.github.tanokun.reactivesk.lang.Identifier
 import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
 import com.github.tanokun.reactivesk.v263.ReactiveSkAddon
 import com.github.tanokun.reactivesk.v263.skript.resolve.clazz.ConstructorInjectorSection
-import com.github.tanokun.reactivesk.v263.skript.runtime.instantiation.mediator.RuntimeConstructorMediator
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation.mediator.RuntimeConstructorMediator
 import com.github.tanokun.reactivesk.v263.skript.util.getDepth
 import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event

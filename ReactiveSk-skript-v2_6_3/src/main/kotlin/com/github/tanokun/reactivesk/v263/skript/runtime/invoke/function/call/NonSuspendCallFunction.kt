@@ -1,4 +1,4 @@
-package com.github.tanokun.reactivesk.v263.skript.runtime.function.call
+package com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.call
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Expression
@@ -13,7 +13,7 @@ import com.github.tanokun.reactivesk.v263.ReactiveSkAddon.Companion.methodCaller
 import com.github.tanokun.reactivesk.v263.caller.method.MethodCaller
 import com.github.tanokun.reactivesk.v263.skript.runtime.DynamicAccessChecks.checkAccessError
 import com.github.tanokun.reactivesk.v263.skript.runtime.SkriptExpressionInitChecks.checkSingletonError
-import com.github.tanokun.reactivesk.v263.skript.runtime.function.mediator.RuntimeFunctionMediator
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.mediator.RuntimeFunctionMediator
 import org.bukkit.event.Event
 
 data class CallFunction(
