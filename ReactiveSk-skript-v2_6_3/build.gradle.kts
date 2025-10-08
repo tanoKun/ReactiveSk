@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.github.tanokun.reactivesk.v263"
-version = "Developing-3-v2.6.3"
+version = "Developing-5-v2.6.3"
 
 repositories {
     mavenCentral()

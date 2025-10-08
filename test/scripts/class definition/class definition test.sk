@@ -1,0 +1,52 @@
+class EmptyClass:
+
+class SinglePropertyClass[val x: long]:
+
+class MultiPropertyClass[val x: long, val y: long, val z: long]:
+
+class UninitializedFieldClass:
+    field:
+        val x: long
+        val y: long
+        val z: long
+
+class PrivatePropertyClass[private val x: long, private val y: long, private val z: long]:
+
+class PrivateUninitializedFieldClass:
+    field:
+        private val x: long
+        private val y: long
+        private val z: long
+
+class FactorClass[factor x: long, factor y: long, factor z: long]:
+
+class FactorUninitializedFieldClass:
+    field:
+        factor x: long
+        factor y: long
+        factor z: long
+
+class MutablePropertyClass[var x: long, var y: long, var z: long]:
+
+class MutableUninitializedFieldClass:
+    field:
+        var x: long
+        var y: long
+        var z: long
+
+class hasNonPropertyClass[x: long, y: long, z: long]:
+
+class MixedClass[x: long, var y: long, factor z: long, private val a: long, private var b: long, private factor c: long]:
+    field:
+        val p: long
+        var q: long
+        factor r: long
+        private val m: long
+        private var n: long
+        private factor o: long
+
+class PropertyOfDynamicClass[val emptyClass: EmptyClass]:
+
+class FieldOfDynamicClass:
+    field:
+        val emptyClass: EmptyClass

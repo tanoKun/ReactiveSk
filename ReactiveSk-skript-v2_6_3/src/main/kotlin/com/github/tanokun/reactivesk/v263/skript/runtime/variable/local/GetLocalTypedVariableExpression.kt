@@ -1,23 +1,20 @@
 package com.github.tanokun.reactivesk.v263.skript.runtime.variable.local
 
 import ch.njol.skript.Skript
-import ch.njol.skript.classes.Changer
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
-import ch.njol.util.Checker
+import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.util.Kleenean
+import ch.njol.util.coll.CollectionUtils.array
 import com.github.tanokun.reactivesk.compiler.frontend.analyze.variable.TypedVariableDeclaration
-import com.github.tanokun.reactivesk.lang.Identifier
 import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
 import com.github.tanokun.reactivesk.v263.ReactiveSkAddon
-import com.github.tanokun.reactivesk.v263.skript.util.getDepth
-import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event
 
 
 @Suppress("UNCHECKED_CAST")
-class GetLocalTypedVariableExpression: Expression<Any> {
+class GetLocalTypedVariableExpression: SimpleExpression<Any>() {
     companion object {
         fun register() {
             Skript.registerExpression(
@@ -39,46 +36,22 @@ class GetLocalTypedVariableExpression: Expression<Any> {
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
-        val variableName = (exprs[0] as? Expression<Identifier>)?.getSingle(null) ?: let {
-            Skript.error("Variable name ${exprs[0]} is not invalid.")
-            return false
-        }
-
-        val node = parser.node ?: let {
-            Skript.error("Cannot find node.")
-            return false
-        }
-
-        val topNode = node.getTopNode()
-        val depth = node.getDepth()
-
-        val currentSection = parser.currentSections.lastOrNull()
-
-        typedVariableResolver.touchSection(topNode, depth, currentSection)
-
-        declaration = typedVariableResolver.getDeclarationInScopeChain(topNode, depth, variableName) ?: let {
-            Skript.error("Typed variable '$variableName' is not declared in scope chain.")
-            return false
-        }
+        this.declaration = verifyAndTouchTypedVariable(exprs[0], parser, typedVariableResolver) ?: return false
 
         isArray = declaration.type == ArrayList::class.java
 
         return true
     }
 
-    override fun toString(e: Event?, debug: Boolean): String = "[${declaration.variableName} (${declaration.type.simpleName})]"
+    override fun get(e: Event): Array<Any> {
+        val value = AmbiguousVariableFrames.get(e, declaration.index) ?: let {
+            throw IllegalStateException("Typed variable '${declaration.variableName}' is not initialized.")
+        }
 
-    override fun isSingle(): Boolean = true
+        return array(value)
+    }
 
-    override fun getReturnType() = declaration.type
-
-    override fun getAnd(): Boolean = true
-
-    override fun setTime(time: Int): Boolean { return false }
-
-    override fun getTime(): Int = 0
-
-    override fun isDefault(): Boolean = false
+    override fun getAll(e: Event) = get(e)
 
     override fun iterator(e: Event): Iterator<Any>? {
         if (isArray) {
@@ -89,37 +62,9 @@ class GetLocalTypedVariableExpression: Expression<Any> {
         return null
     }
 
-    override fun isLoopOf(s: String): Boolean = false
+    override fun isSingle(): Boolean = true
 
-    override fun getSource(): Expression<*> = this
+    override fun getReturnType(): Class<out Any?> = declaration.type
 
-    override fun simplify(): Expression<out Any> = this
-
-    override fun acceptChange(mode: Changer.ChangeMode?): Array<out Class<*>> = arrayOf()
-
-    override fun change(e: Event, delta: Array<out Any?>, mode: Changer.ChangeMode) { }
-
-    override fun getSingle(e: Event): Any = AmbiguousVariableFrames.get(e, declaration.index) ?: let {
-        throw IllegalStateException("Typed variable '${declaration.variableName}' is not initialized.")
-    }
-
-    override fun getArray(e: Event): Array<out Any> = arrayOf(getSingle(e))
-
-    override fun getAll(e: Event): Array<out Any> = arrayOf(getSingle(e))
-
-    override fun check(e: Event, c: Checker<in Any>, negated: Boolean): Boolean {
-        val value = AmbiguousVariableFrames.get(e, declaration.index) ?: return negated
-        val ok = c.check(value)
-
-        return if (negated) !ok else ok
-    }
-
-    override fun check(e: Event, c: Checker<in Any>?): Boolean {
-        if (c == null) return true
-        val value = AmbiguousVariableFrames.get(e, declaration.index) ?: return false
-
-        return c.check(value)
-    }
-
-    override fun <R : Any?> getConvertedExpression(vararg to: Class<R>): Expression<out R>? = null
+    override fun toString(e: Event?, debug: Boolean): String = "${declaration.variableName} (${declaration.type.simpleName})"
 }

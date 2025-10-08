@@ -1,11 +1,10 @@
 package com.github.tanokun.reactivesk.v263.skript.runtime.variable.field
 
 import ch.njol.skript.Skript
-import ch.njol.skript.classes.Changer
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
-import ch.njol.util.Checker
+import ch.njol.skript.lang.util.SimpleExpression
 import ch.njol.util.Kleenean
 import com.github.tanokun.reactivesk.compiler.backend.codegen.util.internalFieldOf
 import com.github.tanokun.reactivesk.compiler.backend.metadata.ModifierMetadata
@@ -18,7 +17,7 @@ import java.lang.invoke.MethodHandles
 import java.lang.reflect.Field
 
 @Suppress("UNCHECKED_CAST")
-class GetTypedValueFieldExpression: Expression<Any> {
+class GetTypedValueFieldExpression: SimpleExpression<Any>() {
     private val lookup = MethodHandles.publicLookup()
 
     companion object {
@@ -91,14 +90,6 @@ class GetTypedValueFieldExpression: Expression<Any> {
 
     override fun getReturnType() = returnType
 
-    override fun getAnd(): Boolean = true
-
-    override fun setTime(time: Int): Boolean { return false }
-
-    override fun getTime(): Int = 0
-
-    override fun isDefault(): Boolean = false
-
     override fun iterator(e: Event): Iterator<Any>? {
         if (isArray) {
             val list = getSingle(e) as ArrayList<*>
@@ -108,38 +99,16 @@ class GetTypedValueFieldExpression: Expression<Any> {
         return null
     }
 
-    override fun isLoopOf(s: String): Boolean = false
-
-    override fun getSource(): Expression<*> = this
-
-    override fun simplify(): Expression<out Any> = this
-
-    override fun acceptChange(mode: Changer.ChangeMode?): Array<out Class<*>> = arrayOf()
-
-    override fun change(e: Event, delta: Array<out Any?>, mode: Changer.ChangeMode) { }
-
     override fun toString(e: Event?, debug: Boolean): String = "$targetExpr.$fieldName"
 
-    override fun getSingle(e: Event): Any {
+    override fun get(e: Event): Array<out Any> {
         val target = targetExpr.getSingle(e) ?: throw IllegalStateException("Integrity of '$targetExpr' is broken.")
         val value = getterHandle.invoke(target) ?: throw IllegalStateException("Field '$fieldName' in '${targetExpr.returnType.simpleName}' is not initialized.")
 
-        return value
+        return arrayOf(value)
     }
 
-    override fun getArray(e: Event): Array<out Any> = arrayOf(getSingle(e))
-
-    override fun getAll(e: Event): Array<out Any> = arrayOf(getSingle(e))
+    override fun getAll(e: Event): Array<out Any> = get(e)
 
     override fun isSingle(): Boolean = true
-
-    override fun check(e: Event, c: Checker<in Any>, negated: Boolean): Boolean {
-        return c.check(getSingle(e))
-    }
-
-    override fun check(e: Event, c: Checker<in Any>): Boolean {
-        return c.check(getSingle(e))
-    }
-
-    override fun <R : Any?> getConvertedExpression(vararg to: Class<R>): Expression<out R>? = null
 }

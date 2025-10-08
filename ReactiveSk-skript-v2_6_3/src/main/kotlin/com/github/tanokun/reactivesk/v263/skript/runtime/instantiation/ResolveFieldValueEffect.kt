@@ -5,6 +5,7 @@ import ch.njol.skript.config.Node
 import ch.njol.skript.lang.Effect
 import ch.njol.skript.lang.Expression
 import ch.njol.skript.lang.SkriptParser
+import ch.njol.skript.lang.TriggerItem
 import ch.njol.skript.sections.SecLoop
 import ch.njol.skript.sections.SecWhile
 import ch.njol.skript.util.LiteralUtils
@@ -22,7 +23,6 @@ import com.github.tanokun.reactivesk.v263.skript.util.getTopNode
 import org.bukkit.event.Event
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
 
 @Suppress("UNCHECKED_CAST")
 class ResolveFieldValueEffect: Effect() {
@@ -103,21 +103,15 @@ class ResolveFieldValueEffect: Effect() {
             Skript.warning("Resolving field '$fieldName' inside a loop may cause 'already initialized' error if the field is already initialized.")
         }
 
-        setterHandle =
-            if (field.type == ArrayList::class.java) {
-                lookup.findVirtual(
-                    clazz,
-                    internalArrayListSetterOf(fieldName.identifier),
-                    MethodType.methodType(Void.TYPE, ArrayList::class.java, Boolean::class.java)
-                )
-            } else
-                lookup.findVirtual(
-                    clazz,
-                    internalSetterOf(fieldName.identifier),
-                    MethodType.methodType(Void.TYPE, valueExpr.returnType, Boolean::class.java)
-                )
 
+        val setterName = if (field.type == ArrayList::class.java)
+            internalArrayListSetterOf(fieldName.identifier)
+        else
+            internalSetterOf(fieldName.identifier)
 
+        val setterMethod = clazz.methods.first { it.name == setterName }
+
+        setterHandle = lookup.unreflect(setterMethod)
         getterHandle = lookup.unreflectGetter(field)
 
         val depth = parseNode.getDepth()
@@ -133,14 +127,24 @@ class ResolveFieldValueEffect: Effect() {
         return true
     }
 
-    override fun execute(e: Event) {
+    override fun execute(e: Event?) =
+        throw UnsupportedOperationException("Cannot execute ResolveFieldValueEffect directly. It must be executed in walk.")
+
+
+    override fun walk(e: Event): TriggerItem? {
         e as RuntimeConstructorMediator
 
         val target = AmbiguousVariableFrames.get(e, 0) ?: throw IllegalStateException("Integrity of 'this' is broken.")
         val value = valueExpr.getSingle(e) ?: throw IllegalStateException("Integrity of '$valueExpr' is broken.")
 
-        if (getterHandle.invoke(target) != null) throw IllegalStateException("Cannot resolve field '$fieldName' in '${target::class.java.simpleName}' because it's already initialized.")
+        if (getterHandle.invoke(target) != null) {
+            Skript.error("Cannot resolve field '$fieldName' in '${target::class.java.simpleName}' because it's already initialized.\"")
+            return null
+        }
+
         setterHandle.invoke(target, value, false)
+
+        return next
     }
 
     override fun toString(e: Event?, debug: Boolean): String = "resolve $fieldName \\:= $valueExpr"

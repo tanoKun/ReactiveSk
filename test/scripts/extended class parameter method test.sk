@@ -1,0 +1,16 @@
+class Counter:
+    field:
+        factor count: number
+
+    init:
+        resolve count := 0
+    
+    function increment():
+        notify that set count of [this] to count of [this] + 1 
+
+load:
+    immutable counter := create Counter
+    [counter] -> increment()
+
+    immutable verify := true if count of [counter] is 1
+    send "%[verify]%: invoke extended class parameter method is %[verify]%" to console

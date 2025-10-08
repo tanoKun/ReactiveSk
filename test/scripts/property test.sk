@@ -1,0 +1,20 @@
+class Nest1[val nest2: Nest2]:
+
+class Nest2[val nest3: Nest3]:
+
+class Nest3[val nest4: Nest4]:
+
+class Nest4[var value: long]:
+
+load:
+    val nest4 := new Nest4(10)
+    val nest3 := new Nest3([nest4])
+    val nest2 := new Nest2([nest3])
+    val nest1 := new Nest1([nest2])
+
+
+    val value := [nest1] -> nest2 -> nest3 -> nest4 -> value
+
+    val verify := true if [value] is 10
+
+    send "%[verify]%: nested property access is %[verify]%" to console

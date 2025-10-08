@@ -1,0 +1,9 @@
+class LoadGlobalFromLocalVariableTest:
+
+load:
+    immutable test := new LoadGlobalFromLocalVariableTest
+    set {test::LoadGlobalFromLocalVariableTest} to [test]
+
+    immutable test3 := {test::LoadGlobalFromLocalVariableTest} as LoadGlobalFromLocalVariableTest
+    immutable verify := true if [test3] is [test]
+    send "%[verify]%: load global from local variable (as LoadGlobalFromLocalVariableTest)" to console
