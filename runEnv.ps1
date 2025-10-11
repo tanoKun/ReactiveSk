@@ -7,6 +7,7 @@ Usage:
 param(
     [string]$server = "1.12.2.jar",
     [string]$skript = "Skript-v2.6.3.jar",
+    [string]$reactive = $null,
     [string]$java = $null,
     [switch]$NoStart,
     [switch]$Detach,
@@ -17,7 +18,11 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $serversDir = Join-Path $root 'test\servers'
 $skriptPluginsDir = Join-Path $root 'test\skript-plugins'
 $scriptsDir = Join-Path $root 'test\scripts'
-$reactiveDir = Join-Path $root 'ReactiveSk-skript-v2_6_3\build\libs'
+if ($reactive) {
+    $reactiveDir = Join-Path $reactive 'build\libs'
+} else {
+    $reactiveDir = Join-Path $root 'ReactiveSk-skript-v2_6_3\build\libs'
+}
 
 $serverBase = [IO.Path]::GetFileNameWithoutExtension($server)
 $serverDir = Join-Path $serversDir $serverBase

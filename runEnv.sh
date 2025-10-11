@@ -51,14 +51,7 @@ JAVA_EXEC=${JAVA_ARG:-$JAVA_DEFAULT}
 
 # resolve reactive directory
 if [[ -n "${REACTIVE_ARG:-}" ]]; then
-  # if absolute path or relative exists
-  if [[ -d "$REACTIVE_ARG" ]]; then
-    REACTIVE_DIR="$REACTIVE_ARG/build/libs"
-  elif [[ -d "$ROOT_DIR/$REACTIVE_ARG" ]]; then
-    REACTIVE_DIR="$ROOT_DIR/$REACTIVE_ARG/build/libs"
-  else
-    REACTIVE_DIR="$REACTIVE_ARG"
-  fi
+  REACTIVE_DIR="$REACTIVE_ARG/build/libs"
 else
   REACTIVE_DIR="$DEFAULT_REACTIVE_DIR"
 fi
