@@ -15,28 +15,11 @@ repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://repo.skriptlang.org/releases")
     maven("https://repo.songoda.com/repository/public/")
-
-    maven {
-        url = uri("https://maven.pkg.github.com/tanoKun/ReactiveSk-Common")
-        credentials {
-            username = System.getenv("GITHUB_ACTOR")
-            password = System.getenv("GITHUB_TOKEN")
-        }
-
-        content {
-            includeGroup("com.github.tanokun.reactivesk")
-        }
-    }
+    maven("https://jitpack.io")
 }
 
 extra["reactive.jvmToolchain"] = 8
 apply(plugin = "com.tanokun.reactive-convention")
-
-tasks.named<AntlrTask>("generateGrammarSource") {
-    outputDirectory = file("build/generated-src/antlr/main")
-    arguments = arguments + listOf("-package", "com.github.tanokun.addon", "-visitor")
-}
-
 
 tasks {
     val copyJarToPlugins by registering(Copy::class) {

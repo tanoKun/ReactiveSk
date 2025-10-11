@@ -10,10 +10,7 @@ skript-v263 = "2.6.3"
 skript-v270 = "2.7.0"
 bytebuddy = "1.17.0"
 bytebuddy-agent = "1.17.0"
-reactivesk-lang = "1.0.0"
-reactivesk-compiler-frontend = "1.0.2"
-reactivesk-compiler-backend = "1.0.5"
-reactivesk-adapter-common = "1.0.5"
+reactivesk-common = "summary-2"
 
 [libraries]
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
@@ -24,10 +21,10 @@ skript-api-v263 = { group = "com.github.SkriptLang", name = "Skript", version.re
 skript-api-v270 = { group = "com.github.SkriptLang", name = "Skript", version.ref = "skript-v270" }
 bytebuddy = { module = "net.bytebuddy:byte-buddy", version.ref = "bytebuddy" }
 bytebuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "bytebuddy-agent" }
-reactivesk-lang = { module = "com.github.tanokun.reactivesk:lang", version.ref = "reactivesk-lang" }
-reactivesk-compiler-frontend = { module = "com.github.tanokun.reactivesk:compiler-frontend", version.ref = "reactivesk-compiler-frontend" }
-reactivesk-compiler-backend = { module = "com.github.tanokun.reactivesk:compiler-backend", version.ref = "reactivesk-compiler-backend" }
-reactivesk-adapter-common = { module = "com.github.tanokun.reactivesk:adapter-common", version.ref = "reactivesk-adapter-common" }
+reactivesk-lang = { module = "com.github.tanokun.ReactiveSk-Common:lang", version.ref = "reactivesk-common" }
+reactivesk-compiler-frontend = { module = "com.github.tanokun.ReactiveSk-Common:compiler-frontend", version.ref = "reactivesk-common" }
+reactivesk-compiler-backend = { module = "com.github.tanokun.ReactiveSk-Common:compiler-backend", version.ref = "reactivesk-common" }
+reactivesk-adapter-common = { module = "com.github.tanokun.ReactiveSk-Common:adapter-common", version.ref = "reactivesk-common" }
 
 [bundles]
 mccoroutine = ["mccoroutine-bukkit-api", "mccoroutine-bukkit-core"]
