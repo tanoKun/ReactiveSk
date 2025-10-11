@@ -31,10 +31,6 @@ java {
     }
 }
 
-tasks.withType<JavaCompile> {
-    options.release = 17
-}
-
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
 }
