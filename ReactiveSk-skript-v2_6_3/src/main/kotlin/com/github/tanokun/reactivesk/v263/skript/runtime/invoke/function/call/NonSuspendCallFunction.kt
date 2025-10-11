@@ -2,7 +2,6 @@ package com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.call
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Expression
-import ch.njol.skript.lang.ExpressionList
 import ch.njol.skript.lang.parser.ParserInstance
 import ch.njol.skript.util.LiteralUtils
 import com.github.tanokun.reactivesk.compiler.backend.codegen.util.internalFunctionNameOf
@@ -12,7 +11,7 @@ import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
 import com.github.tanokun.reactivesk.v263.ReactiveSkAddon.Companion.methodCallers
 import com.github.tanokun.reactivesk.v263.caller.method.MethodCaller
 import com.github.tanokun.reactivesk.v263.skript.runtime.DynamicAccessChecks.checkAccessError
-import com.github.tanokun.reactivesk.v263.skript.runtime.SkriptExpressionInitChecks.checkSingletonError
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.ArgumentTransformer
 import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.function.mediator.RuntimeFunctionMediator
 import org.bukkit.event.Event
 
@@ -33,18 +32,7 @@ object NonSuspendCallFunction {
             return null
         }
 
-        val argumentsExpr: Expression<Any>? = exprs[2]?.let { LiteralUtils.defendExpression(it) }
-
-        val argumentExprs =
-            when (argumentsExpr) {
-                is ExpressionList<*> -> (argumentsExpr as ExpressionList<Any>).expressions as Array<Expression<Any>>
-                null -> arrayOf()
-                else -> arrayOf(argumentsExpr)
-            }
-
-        argumentExprs.forEach {
-            if (checkSingletonError(it)) return null
-        }
+        val argumentExprs = ArgumentTransformer.transformArguments(exprs.getOrNull(2)) ?: return null
 
         val argumentTypes = argumentExprs.map(Expression<Any>::getReturnType).toTypedArray()
         val calledClass = targetExpr.getReturnType()

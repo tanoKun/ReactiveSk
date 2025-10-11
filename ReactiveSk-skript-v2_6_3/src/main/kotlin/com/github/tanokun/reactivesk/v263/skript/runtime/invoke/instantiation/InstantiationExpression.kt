@@ -2,16 +2,15 @@ package com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation
 
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Expression
-import ch.njol.skript.lang.ExpressionList
 import ch.njol.skript.lang.ExpressionType
 import ch.njol.skript.lang.SkriptParser
 import ch.njol.skript.lang.util.SimpleExpression
-import ch.njol.skript.util.LiteralUtils
 import ch.njol.util.Kleenean
 import com.github.tanokun.reactivesk.v263.AmbiguousVariableFrames
 import com.github.tanokun.reactivesk.v263.ReactiveSkAddon.Companion.constructorCallers
 import com.github.tanokun.reactivesk.v263.caller.method.ConstructorCaller
 import com.github.tanokun.reactivesk.v263.skript.DynamicClassInfo
+import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.ArgumentTransformer
 import com.github.tanokun.reactivesk.v263.skript.runtime.invoke.instantiation.mediator.RuntimeConstructorMediator
 import org.bukkit.event.Event
 import java.lang.reflect.InvocationTargetException
@@ -42,19 +41,7 @@ class InstantiationExpression: SimpleExpression<Any>() {
         isDelayed: Kleenean,
         parseResult: SkriptParser.ParseResult,
     ): Boolean {
-        val argumentsExpr: Expression<Any> = LiteralUtils.defendExpression(exprs[1] ?: ExpressionList(emptyArray(), Any::class.java, true))
-
-        argumentExprs =
-            if (argumentsExpr is ExpressionList<*>)
-                (argumentsExpr as ExpressionList<Any>).getExpressions() as Array<Expression<Any>>
-            else arrayOf(argumentsExpr)
-
-        argumentExprs.forEach {
-            if (!it.isSingle) {
-                Skript.error("Cannot use $it. It must be single value expression.")
-                return false
-            }
-        }
+        argumentExprs = ArgumentTransformer.transformArguments(exprs.getOrNull(1)) ?: return false
 
         dynamicClassInfo = (exprs[0] as? Expression<DynamicClassInfo>)?.getSingle(null) ?: let {
             Skript.error("Cannot find dynamic class ${exprs[0]}.")
