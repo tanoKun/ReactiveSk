@@ -39,6 +39,14 @@ tasks {
     }
 }
 
+tasks.generateTestGrammarSource {
+    isEnabled = false
+}
+
+tasks.generateGrammarSource {
+    isEnabled = false
+}
+
 dependencies {
     compileOnly(libs.spigot)
     compileOnly(libs.skript.api.v270)

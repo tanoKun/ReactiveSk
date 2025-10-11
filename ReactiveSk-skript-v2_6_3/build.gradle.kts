@@ -22,6 +22,14 @@ kotlin {
     jvmToolchain(8)
 }
 
+tasks.generateTestGrammarSource {
+    isEnabled = false
+}
+
+tasks.generateGrammarSource {
+    isEnabled = false
+}
+
 tasks {
     val copyJarToPlugins by registering(Copy::class) {
         dependsOn(shadowJar)
