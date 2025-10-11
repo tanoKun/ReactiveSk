@@ -31,6 +31,12 @@ java {
     }
 }
 
+tasks.named<JavaCompile>("compileJava") {
+    sourceCompatibility = "17"
+    targetCompatibility = "17"
+    options.encoding = "UTF-8"
+}
+
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
 }

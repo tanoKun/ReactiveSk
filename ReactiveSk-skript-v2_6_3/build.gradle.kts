@@ -27,6 +27,12 @@ java {
     }
 }
 
+tasks.named<JavaCompile>("compileJava") {
+    sourceCompatibility = "8"
+    targetCompatibility = "8"
+    options.encoding = "UTF-8"
+}
+
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions.jvmTarget.set(JvmTarget.JVM_1_8)
 }
