@@ -18,8 +18,9 @@ repositories {
     maven("https://jitpack.io")
 }
 
-extra["reactive.jvmToolchain"] = 8
-apply(plugin = "com.tanokun.reactive-convention")
+kotlin {
+    jvmToolchain(8)
+}
 
 tasks {
     val copyJarToPlugins by registering(Copy::class) {

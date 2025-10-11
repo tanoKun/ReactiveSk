@@ -18,12 +18,8 @@ repositories {
     maven("https://jitpack.io")
 }
 
-extra["reactive.jvmToolchain"] = 17
-apply(plugin = "com.tanokun.reactive-convention")
-
-tasks.named<AntlrTask>("generateGrammarSource") {
-    outputDirectory = file("build/generated-src/antlr/main")
-    arguments = arguments + listOf("-package", "com.github.tanokun.addon", "-visitor")
+kotlin {
+    jvmToolchain(17)
 }
 
 tasks {
