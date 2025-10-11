@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     kotlin("jvm")
     `java-library`
@@ -18,8 +21,18 @@ repositories {
     maven("https://jitpack.io")
 }
 
-kotlin {
-    jvmToolchain(8)
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+tasks.withType<JavaCompile> {
+    options.release = 8
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_1_8)
 }
 
 tasks.generateTestGrammarSource {
