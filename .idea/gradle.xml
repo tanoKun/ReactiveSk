@@ -9,8 +9,7 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/ReactiveSk-skript-v2_6_3" />
-            <option value="$PROJECT_DIR$/ReactiveSk-skript-v2_7_0" />
+            <option value="$PROJECT_DIR$/ReactiveSk" />
           </set>
         </option>
       </GradleProjectSettings>
