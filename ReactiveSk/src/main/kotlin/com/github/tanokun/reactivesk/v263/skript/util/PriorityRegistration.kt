@@ -3,6 +3,7 @@ package com.github.tanokun.reactivesk.v263.skript.util
 import ch.njol.skript.Skript
 import ch.njol.skript.lang.Effect
 import ch.njol.skript.lang.SyntaxElementInfo
+import ch.njol.skript.util.Version
 
 /**
  * Skript の構文要素登録を簡略化するユーティリティです。
@@ -17,6 +18,11 @@ object PriorityRegistration {
      * @param syntax 登録する構文パターン群
      */
     inline fun <reified T: Effect> register(vararg syntax: String) {
+        if (Skript.getVersion() >= Version("2.10.0")) {
+            Skript.registerEffect(T::class.java, *syntax)
+            return
+        }
+
         val effects = (Skript.getEffects() as ArrayList)
         val statements = (Skript.getStatements() as ArrayList)
 

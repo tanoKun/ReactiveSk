@@ -7,10 +7,10 @@ kotlinxCoroutines = "1.10.2"
 mccoroutine = "2.22.0"
 spigot = "1.12.2"
 skript-v263 = "2.6.3"
-skript-v270 = "2.7.0"
+skript-v2100 = "2.10.0"
 bytebuddy = "1.17.0"
 bytebuddy-agent = "1.17.0"
-reactivesk-common = "summary-2"
+reactivesk-common = "summary-3"
 
 [libraries]
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
@@ -18,7 +18,7 @@ mccoroutine-bukkit-api = { module = "com.github.shynixn.mccoroutine:mccoroutine-
 mccoroutine-bukkit-core = { module = "com.github.shynixn.mccoroutine:mccoroutine-bukkit-core", version.ref = "mccoroutine" }
 spigot = { group = "org.spigotmc", name = "spigot", version.ref = "spigot" }
 skript-api-v263 = { group = "com.github.SkriptLang", name = "Skript", version.ref = "skript-v263" }
-skript-api-v270 = { group = "com.github.SkriptLang", name = "Skript", version.ref = "skript-v270" }
+skript-api-v2100 = { group = "com.github.SkriptLang", name = "Skript", version.ref = "skript-v2100" }
 bytebuddy = { module = "net.bytebuddy:byte-buddy", version.ref = "bytebuddy" }
 bytebuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "bytebuddy-agent" }
 reactivesk-lang = { module = "com.github.tanokun.ReactiveSk-Common:lang", version.ref = "reactivesk-common" }

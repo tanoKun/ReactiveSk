@@ -6,7 +6,7 @@ services:
     stdin_open: true
     container_name: paper-dev-server-${PAPER_VERSION}
     ports:
-      - "25565:25565"
+      - "25570:25570"
       - "5005:5005"
     environment:
       EULA: "TRUE"

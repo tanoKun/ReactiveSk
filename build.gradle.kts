@@ -12,7 +12,6 @@ repositories {
 
 allprojects {
     group = "com.github.tanokun"
-    version = "developing"
 
     repositories {
         mavenCentral()
@@ -48,26 +47,25 @@ val dockerDownTask = tasks.register<Exec>("dockerDown") {
     commandLine("docker-compose", "down")
 }
 
+val copyPluginTask = tasks.register<Copy>("copyPlugin") {
+    group = "Run Environments"
+    description = "Copies the built plugin JAR for the '$name' environment."
+
+    dependsOn(":ReactiveSk:shadowJar")
+    from(project.projectDir.resolve("ReactiveSk/build/libs").listFiles().first { it.name.startsWith("ReactiveSk") })
+    into(project.projectDir.resolve("docker/plugins"))
+}
+
 fun TaskContainer.registerRunEnvTask(
-    name: String,
     paperVersion: String,
     skriptVersionWithPath: String,
-    moduleName: String,
     javaVersion: Int,
 ) {
-
-    val copyPluginTask = register<Copy>("copyPluginFor_$name") {
-        group = "Run Environments"
-        description = "Copies the built plugin JAR for the '$name' environment."
-
-        dependsOn(":$moduleName:shadowJar")
-        from(project.projectDir.resolve("$moduleName/build/libs/ReactiveSk-developing-all.jar"))
-        into(project.projectDir.resolve("docker/plugins"))
-    }
+    val name = "runEnv_Paper${paperVersion.replace('.', '_')}_v${skriptVersionWithPath.replace('.', '_').split("/")[0]}_Java$javaVersion"
 
     register<Exec>(name) {
         group = "Run Environments"
-        description = "Builds '$moduleName', then runs Paper $paperVersion with Skript $skriptVersionWithPath via Docker."
+        description = "Builds ReactiveSk runs Paper $paperVersion with Skript $skriptVersionWithPath via Docker."
 
         finalizedBy(stopServerTask)
         dependsOn(dockerDownTask, cleanTask, copyPluginTask)
@@ -91,25 +89,31 @@ fun TaskContainer.registerRunEnvTask(
 }
 
 tasks.registerRunEnvTask(
-    name = "runEnvConsole1_12_2_v2_6_3",
     paperVersion = "1.12.2",
     skriptVersionWithPath = "2.6.3/Skript.jar",
-    moduleName = "ReactiveSk",
     javaVersion = 8
 )
 
 tasks.registerRunEnvTask(
-    name = "runEnvConsole1_17_1_v2_7_0",
     paperVersion = "1.17.1",
     skriptVersionWithPath = "2.7.0/Skript.jar",
-    moduleName = "ReactiveSk",
     javaVersion = 17
 )
 
 tasks.registerRunEnvTask(
-    name = "runEnvConsole1_17_1_v2_9_5",
     paperVersion = "1.17.1",
     skriptVersionWithPath = "2.9.5/Skript-2.9.5.jar",
-    moduleName = "ReactiveSk",
     javaVersion = 17
+)
+
+tasks.registerRunEnvTask(
+    paperVersion = "1.21.4",
+    skriptVersionWithPath = "2.10.0/Skript-2.10.0.jar",
+    javaVersion = 21
+)
+
+tasks.registerRunEnvTask(
+    paperVersion = "1.21.8",
+    skriptVersionWithPath = "2.12.2/Skript-2.12.2.jar",
+    javaVersion = 21
 )

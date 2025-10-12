@@ -1,8 +1,13 @@
 # ReactiveSk
 ReactiveSk enables object-oriented and lightweight reactive programming for Skript.
 
+## Supported Versions
+- `Skript 2.6.3 ~ 2.12.2`
+- `Paper 1.12.2 ~ 1.21.8`
+
 <!-- TOC -->
 * [ReactiveSk](#reactivesk)
+  * [Supported Versions](#supported-versions)
 * [Class Definition](#class-definition)
   * [Constructor and Properties](#constructor-and-properties)
   * [field section](#field-section)
