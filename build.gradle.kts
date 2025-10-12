@@ -94,7 +94,7 @@ tasks.registerRunEnvTask(
     name = "runEnvConsole1_12_2_v2_6_3",
     paperVersion = "1.12.2",
     skriptVersionWithPath = "2.6.3/Skript.jar",
-    moduleName = "ReactiveSk-skript-v2_6_3",
+    moduleName = "ReactiveSk",
     javaVersion = 8
 )
 
@@ -102,6 +102,14 @@ tasks.registerRunEnvTask(
     name = "runEnvConsole1_17_1_v2_7_0",
     paperVersion = "1.17.1",
     skriptVersionWithPath = "2.7.0/Skript.jar",
-    moduleName = "ReactiveSk-skript-v2_7_0",
+    moduleName = "ReactiveSk",
+    javaVersion = 17
+)
+
+tasks.registerRunEnvTask(
+    name = "runEnvConsole1_17_1_v2_9_5",
+    paperVersion = "1.17.1",
+    skriptVersionWithPath = "2.9.5/Skript-2.9.5.jar",
+    moduleName = "ReactiveSk",
     javaVersion = 17
 )
