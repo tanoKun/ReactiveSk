@@ -1,32 +1,32 @@
 # ReactiveSk
-Skript に **オブジェクト指向・軽いリアクティブ**を使用したプログラミングを可能にします。
+ReactiveSk enables object-oriented and lightweight reactive programming for Skript.
 
 <!-- TOC -->
 * [ReactiveSk](#reactivesk)
-* [クラス定義](#クラス定義)
-  * [コンストラクタとプロパティ](#コンストラクタとプロパティ)
-  * [field セクション](#field-セクション)
-  * [修飾子](#修飾子)
-    * [アクセス修飾子](#アクセス修飾子)
-    * [宣言修飾子](#宣言修飾子)
-  * [init セクション](#init-セクション)
-* [クラス関数定義](#クラス関数定義)
-* [クラス関数呼び出し](#クラス関数呼び出し)
-  * [Non Suspend (Expression, Effect)](#non-suspend-expression-effect)
-* [型と配列](#型と配列)
-* [変数宣言（型制限変数）](#変数宣言型制限変数)
-  * [変数アクセス](#変数アクセス)
-* [監視 - Observer](#監視---observer)
-  * [クラス監視](#クラス監視)
-    * [参照可能な変数](#参照可能な変数)
-  * [通知 - Notify](#通知---notify)
-* [文法要約](#文法要約)
-* [例: 完全なクラスサンプル](#例-完全なクラスサンプル)
+* [Class Definition](#class-definition)
+  * [Constructor and Properties](#constructor-and-properties)
+  * [field section](#field-section)
+  * [Modifiers](#modifiers)
+    * [Access Modifiers](#access-modifiers)
+    * [Declaration Modifiers](#declaration-modifiers)
+  * [init section](#init-section)
+* [Class Function Definition](#class-function-definition)
+* [Calling Class Functions](#calling-class-functions)
+  * [Non-Suspend (Expression, Effect)](#non-suspend-expression-effect)
+* [Types and Arrays](#types-and-arrays)
+* [Variable Declaration (Typed Variables)](#variable-declaration-typed-variables)
+  * [Variable Access](#variable-access)
+* [Observation - Observer](#observation---observer)
+  * [Class Observation](#class-observation)
+    * [Available Variables](#available-variables)
+  * [Notification - Notify](#notification---notify)
+* [Grammar Summary](#grammar-summary)
+* [Example: Full Class Sample](#example-full-class-sample)
 <!-- TOC -->
 
-# クラス定義
-- `class Name[constructorParameters...]:` でクラスを定義します。
-- クラス本体には、`field:`、`init:`、`function ...:` を記述できます。
+# Class Definition
+- Define a class using `class Name[constructorParameters...]:`.
+- The class body can contain `field:`, `init:`, and `function ...:` sections.
 
 ```
 class Test2[test2: array of string, val test: string]:
@@ -50,61 +50,58 @@ class Counter[val count: integer]:
         
 ```
 
-## コンストラクタとプロパティ
-- 角括弧 `[...]` 内がコンストラクタ引数です。
-- そのうち `val` / `var` / `factor` が付いた引数は `フィールド` として自動生成され、インスタンス生成時に自動代入されます。
-  - 例: `val test: string` → `test` は読み取り専用プロパティ
-  - 例: `var test: string` → `test` は再代入可能プロパティ
-- `val` / `var` が付いていない引数はプロパティにはなりませんが、`init` セクション内からパラメータ名（例: `[test2]` のような参照表記）でアクセスできます。
+## Constructor and Properties
+- Constructor parameters are placed inside square brackets `[...]`.
+- Parameters marked with `val` / `var` / `factor` become fields automatically and are assigned during instance creation.
+  - Example: `val test: string` → `test` is a read-only property
+  - Example: `var test: string` → `test` is a mutable property
+- Parameters without `val` / `var` do not become properties, but they can be accessed inside the `init` section using the parameter name (e.g. `[test2]`).
 
-## field セクション
-- 追加の `フィールド` を宣言します。
-- アクセス修飾子や可変性を指定できます。
+## field section
+- Declare additional fields in the `field` section.
+- You can specify access modifiers and mutability.
 
 `private var test3: string`
 
-`field` で宣言したフィールドは、`init` セクションで必ず `resolve` により初期化（解決）しないとエラーになります。
+Fields declared in `field` must be initialized (resolved) in the `init` section using `resolve`, otherwise an error occurs.
 
 `resolve test3 := "resolved!"`
 
-また、解決する必要のあるフィールドは 直接 `[name]` でアクセスすることができません。
-行いたい場合は、`[this] -> name` を経由しアクセスしてください。
+Fields that must be resolved cannot be accessed directly using `[name]` before they are resolved. If you need to access them, use `[this] -> name`.
 
-## 修飾子
-修飾子には `アクセス修飾子`　と `宣言修飾子` の2種類があります。
+## Modifiers
+There are two kinds of modifiers: access modifiers and declaration modifiers.
 
-### アクセス修飾子
-- `private` : クラス外からアクセス不可
+### Access Modifiers
+- `private`: Not accessible from outside the class
 
-### 宣言修飾子
-- `val` : 読み取り専用プロパティ
-- `var` : 再代入可能プロパティ
-- `factor` : 読み取り専用プロパティ + 監視の要因 (リアクティブ)
+### Declaration Modifiers
+- `val`: Read-only property
+- `var`: Mutable property
+- `factor`: Read-only property that acts as a reactive factor (observable)
 
-`factor` は `var` と同様に再代入が可能です。
-この修飾子が付いている変数が変更されると、それを自動的に通知します。
+`factor` can be reassigned like `var`. When a variable marked with `factor` changes, it automatically emits notifications.
 
-## init セクション
-コンストラクタ実行後に呼ばれる初期化ブロックです。
-- `field` で宣言した全フィールドを `resolve` で初期化する
-- `val` / `var` が付いていないコンストラクタ引数にアクセスして初期化ロジックを記述する（例: `[test2]` 参照）
+## init section
+The `init` section is an initialization block executed after the constructor.
+- Initialize all fields declared in `field` with `resolve`.
+- Use constructor parameters without `val` / `var` inside `init` to perform initialization logic (e.g. `[test2]`).
 
-自分自身のインスタンスを指す変数 `[this]` が使用可能です。
+The instance itself is available as `[this]` inside `init`.
 
 ```
 init:
     resolve test3 := "resolved!"
 ```
 
-全フィールドを全ての経路で解決する必要があります。
+All fields must be resolved on every execution path.
 
-# クラス関数定義
-`function name(parameters...) :: returnType:` の形で宣言します。
-関数本体で値を返すには `return <expression>` を使用します。
+# Class Function Definition
+Declare functions as `function name(parameters...) :: returnType:`. Use `return <expression>` to return values from the function body.
 
-returnType は省略が可能です。
+The return type is optional.
 
-また、自分自身のインスタンスを指す変数 `[this]` が使用可能です。
+The instance is available as `[this]` inside functions.
 
 ```
 function name(test: string) :: string:
@@ -114,13 +111,11 @@ function name(test: string):
     # code...
 ```
 
-関数に返り値が設定されている場合、
-全ての経路で `fun return` が**実行されることが保証されます**。
+When a return type is declared, all code paths must guarantee execution of a `return`.
 
+# Calling Class Functions
 
-# クラス関数呼び出し
-
-## Non Suspend (Expression, Effect)
+## Non-Suspend (Expression, Effect)
 > `%object% -> functionName(%objects%) then functionName(%objects%)...`
 
 ```
@@ -128,46 +123,45 @@ val count := [classInstance] -> count() then sendCount()
 
 [classInstance] -> count() then sendCount()
 ```
-この関数の呼び出しは、`中断されず`に**即座に値を返します。**
-関数内に `wait` につながる構文がある場合、値が `null` になる可能性があります。
 
-- ポイント
-  - パラメータには型を明示します（配列も可）。
-# 型と配列
-- 基本型の指定: `string` など
-- 配列型の指定: `array of <type>`
-  - 例: `array of string`
+These calls are non-suspending and return a value immediately. If the function contains constructs that lead to `wait`, the returned value may be `null`.
 
-# 変数宣言（型制限変数）
-- 変数は `val` (再代入不可) と `var`(再代入可) で宣言します。
-- 構文
-  - 明示的な型と初期化: `val | var 名 (型) := 値`, `[declare] immutable | mutable 名 (型) := 値`
-  - 型推論で初期化: `val | var 名 := 値`, `[declare] immutable | mutable 名 := 値`
-- 例
+- Note:
+  - Explicit types should be provided for parameters (arrays are supported).
+
+# Types and Arrays
+- Basic type example: `string`
+- Array type: `array of <type>`
+  - Example: `array of string`
+
+# Variable Declaration (Typed Variables)
+- Variables are declared with `val` (immutable) or `var` (mutable).
+- Syntax:
+  - With explicit type and initializer: `val | var name (type) := value`, `[declare] immutable | mutable name (type) := value`
+  - With type inference: `val | var name := value`, `[declare] immutable | mutable name := value`
+- Examples:
 ```
-val title (string) := "test"         # 型明示 + 初期化
-val msg := "hello"                   # 型推論 + 初期化
-immutable title (string) := "test"   # 型明示 + 初期化
-immutable msg := "hello"             # 型推論 + 初期化
+val title (string) := "test"         # explicit type + initializer
+val msg := "hello"                   # type inference + initializer
+immutable title (string) := "test"   # explicit type + initializer
+immutable msg := "hello"             # type inference + initializer
 
-var count (integer) := 0             # 可変
-set [count] to [count] + 1           # 再代入
-mutable count := 0         # 可変
-set [count] to [count] + 1           # 再代入
+var count (integer) := 0             # mutable
+set [count] to [count] + 1           # reassignment
+mutable count := 0         # mutable
+set [count] to [count] + 1           # reassignment
 
-val count (integer)                  # 宣言
-set [count] to 10                    # 代入
+val count (integer)                  # declaration only
+set [count] to 10                    # assignment
 ```
 
-`val name` のように、初期化も型指定もない宣言はできません。
-また、変数宣言のみを行う場合、**生存範囲を大きく**することは推奨しません。
+You cannot declare `val name` without a type or initializer. Avoid unnecessarily widening the scope of variables declared without initialization.
 
-## 変数アクセス
-基本的に変数は `[name]` でアクセスができます。
-変数が自作型の場合 `[name].field`, `[name] -> field`, `field of [name]` で、フィールドにアクセスが可能です。
+## Variable Access
+Access variables using `[name]`.
+For custom types, access fields with `[name].field`, `[name] -> field`, or `field of [name]`.
 
-`クラス関数` や `init セクション` において定義されている`引数`や`プロパティ`は、
-全て上記の方法でアクセス可能です。
+Arguments and properties defined in class functions and `init` are accessible using the methods above.
 
 ```
 send "%[player].level%"
@@ -176,11 +170,10 @@ send "%[player] -> level%"
 send "%level of [player]%"
 ```
 
-# 監視 - Observer
-`factor` 修飾子が付いたフィールドが変更されると、その変更が通知されます。
-パターンで言う `オブザーバーパターン` を実装します。
+# Observation - Observer
+Fields marked with `factor` emit notifications when changed, implementing an observer pattern.
 
-## クラス監視
+## Class Observation
 
 ```
 class Player[factor level: long, factor exp: long]:
@@ -192,32 +185,28 @@ class Player[factor level: long, factor exp: long]:
 
 observe Player factor level:
     if [instance] -> level >= 10:
-        send "レベル10に到達しました！ おめでとう！"
+        send "Reached level 10! Congratulations!"
 ```
 
-`observe <ClassName> factor <fieldName>:` で監視を開始します。
+Start observing with `observe <ClassName> factor <fieldName>:`.
 
-### 参照可能な変数
-- `[instance]` : 変更があったインスタンス
-- `[old]` : 変更前の値
-- `[new]` : 変更後の値
+### Available Variables
+- `[instance]`: the instance that changed
+- `[old]`: previous value
+- `[new]`: new value
 
-> 一つのロジックで2回 `factor` 変数を変更した場合、2回通知されます。
-> 通知自体はメインスレッドで行われますが、**順序は確定しません**。
-> また、全て `suspend` で実行されます。
-> 
+> If a single logic path changes a `factor` field twice, two notifications are emitted. Notifications run on the main thread, but their ordering is not guaranteed. All observers execute as `suspend`.
 
-## 通知 - Notify
-フィールド変更時、デフォルトでは通知は行われません。(`set [object].field to value` での変更)
+## Notification - Notify
+By default, changing a field (e.g. `set [object].field to value`) does not emit a notification.
+Use `notify that` to emit a notification explicitly. For example:
 
-通知を行うには `notify that` を使用します。
-`notify that set [this].field to value` の様にすることで、通知ができます。
-この設定は、不要な通知を避けるために実装されています。
+`notify that set [this].field to value`
 
+This prevents unnecessary notifications by default.
 
-# 文法要約
-- クラス定義 (BNF 風の短いまとめ例)
-- 実装構文
+# Grammar Summary
+- Short BNF-like summary and usage:
 
 ```
 class <name>[<constructor-params>]:
@@ -233,7 +222,7 @@ observe <class-name> factor <field-name>:
     <statements...>
 ```
 
-# 例: 完全なクラスサンプル
+# Example: Full Class Sample
 ```
 class Player[factor level: long, val name: string]:
     field:
