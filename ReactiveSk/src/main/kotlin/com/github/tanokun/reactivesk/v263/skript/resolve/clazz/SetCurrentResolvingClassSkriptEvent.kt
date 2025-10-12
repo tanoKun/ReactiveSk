@@ -13,7 +13,6 @@ import org.bukkit.event.Event
 /**
  * Skript の class セクションを解釈するための疑似イベントです。
  * 動的に生成されたクラスを解決し、セクション内で参照できるようにします。
- * @property dynamicClass 解決された動的クラス
  */
 class SetCurrentResolvingClassSkriptEvent : SkriptEvent() {
 
