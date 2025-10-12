@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "com.github.tanokun.reactivesk.v263"
-version = "Developing-5-v2.6.3"
+version = "v1.0.0"
 
 repositories {
     mavenCentral()
@@ -46,26 +46,17 @@ tasks.generateGrammarSource {
 }
 
 tasks {
-    val copyJarToPlugins by registering(Copy::class) {
-        dependsOn(shadowJar)
-        from(shadowJar.get().archiveFile)
-        into("C:/Users/owner/Desktop/1.17.1 paper/plugins")
-    }
-
     shadowJar {
         dependsOn(subprojects.map { it.tasks.named("test") })
 
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-        archiveBaseName.set("ReactiveSk")
-        archiveVersion.set("developing")
+        archiveFileName = "ReactiveSk-${project.version}.jar"
 
         dependencies {
             exclude(dependency("com.ibm.icu:icu4j"))
         }
 
         mergeServiceFiles()
-        finalizedBy(copyJarToPlugins)
     }
 
     test {
