@@ -15,7 +15,6 @@ class CastExpression: SimpleExpression<Any>() {
     companion object {
         fun register() {
             Skript.registerExpression(CastExpression::class.java, Any::class.java, ExpressionType.SIMPLE,
-                "%object% as %classinfo%",
                 "cast %object% to %classinfo%"
             )
         }
